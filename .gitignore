@@ -1,0 +1,16 @@
+*.iml
+*.class
+*.o
+local.properties
+workspace.xml
+__pycache__/
+.DS_Store
+.gradle/
+.idea/
+build/
+captures/
+compiled/
+obj/
+out/
+venv/
+
