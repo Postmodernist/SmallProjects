@@ -1,14 +1,13 @@
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 
-val basePrimes: Observable<Int> = Observable.just(2, 3, 5, 7)
-
 class Sieve(var q: Int = 0,  // square of the next base prime to keep track of in the sieve map
             var n: Int = 9,  // next candidate number
             val m: MutableMap<Int, Int> = mutableMapOf())  // sieve
 
 /** Detects primes by lazy sieving out all non-primes and ignoring evens. */
 fun primesRx(): Observable<Int> {
+  val basePrimes: Observable<Int> = Observable.just(2, 3, 5, 7)
   val sieve = Sieve()
   return Observable.concat(basePrimes, Observable.defer(::primesRx)
       .skip(1)  // discard 2 and get 3
