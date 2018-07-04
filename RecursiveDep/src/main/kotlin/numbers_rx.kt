@@ -4,8 +4,6 @@ fun numbersRx(): Observable<Int> = Observable.concat(Observable.range(0, 3), Obs
     .map { it + 3 })
 
 fun main(args: Array<String>) {
-  val disposable = numbersRx()
-      .take(10)
-      .forEach { println(it) }
+  val disposable = numbersRx().take(20).forEach { print("$it ") }
   disposable.dispose()
 }

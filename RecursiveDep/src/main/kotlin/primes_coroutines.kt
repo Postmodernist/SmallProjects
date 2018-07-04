@@ -32,7 +32,7 @@ fun primesCr(): Sequence<Int> = buildSequence {
 
 fun main(args: Array<String>) {
   primesCr()
-      .drop(10000)
+      .drop(10_000)
       .first()
       .apply { println(this) }
 }
