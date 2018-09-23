@@ -1,8 +1,13 @@
-
-fun fact(n: Int) = { x: Any -> (x as (Any) -> (Int) -> Int)(x)(n) } { x: Any ->
-  { n: Int -> if (n == 1) 1 else n * (x as (Any) -> (Int) -> Int)(x)(n - 1) }
+interface IFact {
+  operator fun invoke(self: IFact, n: Int): Int
 }
 
+fun fact(n: Int) = { self: IFact -> self(self, n) }(object : IFact {
+  override fun invoke(self: IFact, n: Int) = if (n == 1) 1 else n * self(self, n - 1)
+})
+
 fun main(args: Array<String>) {
-  println(fact(5))
+  assert(fact(5) == 120)
+  assert(fact(8) == 40320)
+  println("OK")
 }
