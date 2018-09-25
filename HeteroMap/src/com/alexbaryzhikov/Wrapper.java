@@ -4,25 +4,31 @@ import com.sun.istack.internal.NotNull;
 
 class Wrapper {
 
-    private Data<String> string = new StringData();
-    private Data<Integer> integer = new IntegerData();
-    private String type;
+    private final StringData string;
+    private final IntegerData integer;
+    private final String type;
 
     Wrapper(@NotNull Data<?> data) {
-        if (data.getClass() == string.getClass()) {
-            string = (Data<String>) data;
+        if (data instanceof StringData) {
+            string = (StringData) data;
+            integer = null;
             type = "String";
-        } else if (data.getClass() == integer.getClass()) {
-            integer = (Data<Integer>) data;
+        } else if (data instanceof IntegerData) {
+            string = null;
+            integer = (IntegerData) data;
             type = "Integer";
+        } else {
+            string = null;
+            integer = null;
+            type = "Unknown";
         }
     }
 
-    void call(String data) {
-        if (type.equals("String")) {
-            string.call(data);
-        } else if (type.equals("Integer")) {
-            integer.call(data);
+    void invoke(Object data) {
+        if (type.equals("String") && string != null) {
+            string.invoke((String) data);
+        } else if (type.equals("Integer") && integer != null) {
+            integer.invoke((Integer) data);
         }
     }
 }

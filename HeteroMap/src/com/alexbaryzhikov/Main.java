@@ -6,7 +6,7 @@ public class Main {
         Wrapper ws = new Wrapper(new StringData());
         Wrapper wi = new Wrapper(new IntegerData());
 
-        ws.call("hello string");
-        wi.call("hello integer");
+        ws.invoke("hello string");
+        wi.invoke(42);
     }
 }
