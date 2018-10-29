@@ -1,7 +1,5 @@
-import kotlin.coroutines.experimental.buildSequence
-
 fun main(args: Array<String>) {
-  val fib: Sequence<Int> = buildSequence {
+  val fib: Sequence<Int> = sequence {
     var a = 1
     var b = 1
 

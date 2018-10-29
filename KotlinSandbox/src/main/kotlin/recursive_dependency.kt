@@ -1,6 +1,4 @@
-import kotlin.coroutines.experimental.buildSequence
-
-fun seq(): Sequence<Int> = buildSequence {
+fun seq(): Sequence<Int> = sequence {
   yieldAll(0..3)
   val x = { seq() }
   yieldAll(x())
