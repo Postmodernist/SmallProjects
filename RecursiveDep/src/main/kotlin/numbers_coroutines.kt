@@ -1,6 +1,4 @@
-import kotlin.coroutines.experimental.buildSequence
-
-fun numbersCr(): Sequence<Int> = buildSequence {
+fun numbersCr(): Sequence<Int> = sequence {
   yieldAll(0..2)
   val numbersSupply = numbersCr().iterator()
   while (true)

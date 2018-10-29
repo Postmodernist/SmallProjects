@@ -1,7 +1,5 @@
-import kotlin.coroutines.experimental.buildSequence
-
 /** Detects primes by lazy sieving out all non-primes and ignoring evens. */
-fun primesCr(): Sequence<Int> = buildSequence {
+fun primesCr(): Sequence<Int> = sequence {
   yieldAll(listOf(2, 3, 5, 7))
   val sieve = mutableMapOf<Int, Int>()
   val basePrimes = primesCr().iterator()      // generate supply of "base" primes
