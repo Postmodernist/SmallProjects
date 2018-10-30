@@ -16,13 +16,13 @@ fun main(args: Array<String>) {
         binding {
             // In current thread
             val id = just(1).bind()
+            continueOn(Dispatchers.IO)
+
+            // In IO dispatcher now!
+            val result = IO.invoke { id * 10 }.bind()
             continueOn(Dispatchers.Default)
 
-            // In Default dispatcher now!
-            val result = IO.invoke { id * 10 }.bind()
-//            continueOn(Dispatchers.Main)
-
-            // In UI now!
+            // In default dispatcher now!
             println(result)
         }
     }.fix().unsafeRunSync()
