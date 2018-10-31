@@ -10,7 +10,7 @@ private sealed class Doable {
 
 // Process actor messages on the CommonPool thread pool
 @ObsoleteCoroutinesApi
-private val actor = GlobalScope.actor<Doable>(capacity = 0) {
+private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
     consumeEach { doable ->
         when (doable) {
             is Doable.Spin -> spin(doable.id)
@@ -31,16 +31,15 @@ private fun spin(value: Int, durationMillis: Int = 10): Int {
 @ObsoleteCoroutinesApi
 fun main(args: Array<String>) {
     val start = System.currentTimeMillis()
-    runBlocking {
-        (1..100).map { Doable.Spin(it) }
-                .forEach { s ->
-                    launch(Dispatchers.IO) {
-                        actor.send(s)
-                        val duration = System.currentTimeMillis() - start
-                        println("[thread=${Thread.currentThread().name}] [${s.id}] time=$duration")
-                    }
+    (1..100).map { Doable.Spin(it) }
+            .forEach { s ->
+                GlobalScope.launch {
+                    actor.send(s)
+                    val duration = System.currentTimeMillis() - start
+                    println("[thread=${Thread.currentThread().name}] [${s.id}] time=$duration")
                 }
-    }
+            }
     println("time=${System.currentTimeMillis() - start}")
+    runBlocking { delay(5000) }  // wait for coroutines to finish
 }
 
