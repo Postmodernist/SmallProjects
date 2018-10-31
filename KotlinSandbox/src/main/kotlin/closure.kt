@@ -1,4 +1,4 @@
-typealias Action = () -> Unit
+private typealias Action = () -> Unit
 
 fun test1() {
   val fis = mutableListOf<Action>()
