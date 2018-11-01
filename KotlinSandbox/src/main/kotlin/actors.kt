@@ -1,4 +1,5 @@
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlinx.coroutines.channels.consumeEach
 
@@ -8,12 +9,32 @@ private sealed class Doable {
     data class Done(val ack: CompletableDeferred<Boolean>) : Doable()
 }
 
-// Process actor messages on the CommonPool thread pool
+@ObsoleteCoroutinesApi
+private val children: List<SendChannel<Doable>> = Array(5) { createSpinActor() }.asList()
+private var next = 0
+
+// Process actor messages
 @ObsoleteCoroutinesApi
 private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
     consumeEach { doable ->
         when (doable) {
+            is Doable.Spin -> children[next++ % children.size].send(doable)
+            is Doable.Done -> {
+                val acks = (1..children.size).map { CompletableDeferred<Boolean>() }
+                acks.forEachIndexed { index, ack -> children[index].send(Doable.Done(ack)) }
+                acks.map { it.await() }
+                doable.ack.complete(true)
+            }
+        }
+    }
+}
+
+@ObsoleteCoroutinesApi
+private fun createSpinActor() = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
+    consumeEach { doable ->
+        when (doable) {
             is Doable.Spin -> spin(doable.id)
+            is Doable.Done -> doable.ack.complete(true)
         }
     }
 }
@@ -29,17 +50,17 @@ private fun spin(value: Int, durationMillis: Int = 10): Int {
 }
 
 @ObsoleteCoroutinesApi
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = runBlocking {
     val start = System.currentTimeMillis()
-    (1..100).map { Doable.Spin(it) }
+    val ack = CompletableDeferred<Boolean>()
+    (1..101).map { if (it == 101) Doable.Done(ack) else Doable.Spin(it) }
             .forEach { s ->
-                GlobalScope.launch {
-                    actor.send(s)
-                    val duration = System.currentTimeMillis() - start
-                    println("[thread=${Thread.currentThread().name}] [${s.id}] time=$duration")
-                }
+                println("[thread=${Thread.currentThread().name}] [$s] before")
+                actor.send(s)
+                val duration = System.currentTimeMillis() - start
+                println("[thread=${Thread.currentThread().name}] [$s] time=$duration")
             }
+    // Wait for the Actor to trigger completion of the Done operation
+    ack.await()
     println("time=${System.currentTimeMillis() - start}")
-    runBlocking { delay(5000) }  // wait for coroutines to finish
 }
-
