@@ -28,7 +28,7 @@ class MapSetImpl : MapSet {
 
 }
 
-class User(val name: String) : MapSet.Element {
+class User(private val name: String) : MapSet.Element {
     companion object Key : MapSet.Key<User>
 
     override val key = Key

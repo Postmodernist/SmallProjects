@@ -1,3 +1,5 @@
+package coroutines
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
@@ -13,7 +15,7 @@ private sealed class Doable {
 private val children: List<SendChannel<Doable>> = Array(5) { createSpinActor() }.asList()
 private var next = 0
 
-// Process actor messages
+// Process coroutines.actor messages
 @ObsoleteCoroutinesApi
 private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
     consumeEach { doable ->

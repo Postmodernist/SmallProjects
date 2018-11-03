@@ -1,3 +1,5 @@
+package coroutines
+
 fun seq(): Sequence<Int> = sequence {
   yieldAll(0..3)
   val x = { seq() }

@@ -1,16 +1,16 @@
-interface Foo {
-    fun bar(a: Int)
+interface Base {
+    fun method(a: Int)
 }
 
-class FooDelegate : Foo {
-    override fun bar(a: Int) {
-        println("From FooDelegate: $a")
+class BaseDelegate : Base {
+    override fun method(a: Int) {
+        println("From BaseDelegate: $a")
     }
 }
 
-class Qux(val a: Int = 10) : Foo by FooDelegate()
+class Derived(val a: Int = 10) : Base by BaseDelegate()
 
 fun main(args: Array<String>) {
-    val qux = Qux()
-    qux.bar(qux.a)
+    val derived = Derived()
+    derived.method(derived.a)
 }

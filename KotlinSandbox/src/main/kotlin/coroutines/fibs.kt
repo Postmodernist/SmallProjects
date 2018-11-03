@@ -1,3 +1,5 @@
+package coroutines
+
 fun main(args: Array<String>) {
   val fib: Sequence<Int> = sequence {
     var a = 1
