@@ -11,13 +11,11 @@ private sealed class Doable {
     data class Done(val ack: CompletableDeferred<Boolean>) : Doable()
 }
 
-@ObsoleteCoroutinesApi
-private val children: List<SendChannel<Doable>> = Array(5) { createSpinActor() }.asList()
-private var next = 0
-
 // Process coroutines.actor messages
 @ObsoleteCoroutinesApi
 private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
+    val children: List<SendChannel<Doable>> = Array(5) { createSpinActor() }.asList()
+    var next = 0
     consumeEach { doable ->
         when (doable) {
             is Doable.Spin -> children[next++ % children.size].send(doable)
