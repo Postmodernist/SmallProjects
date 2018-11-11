@@ -1,12 +1,13 @@
 import kotlinx.coroutines.*
 
 class Logger(private val httpService: HttpService) {
-    private val sendTimeout = 5000L  // milliseconds
-    private val sendSize = 5
+    private val bufferCapacity = 25
+    private val sendThreshold = 5
+    private val sendTimeout = 5000L
 
-    private val buffer0 = EvictingQueue<String>(25)
-    private var trigger: CompletableDeferred<Boolean>? = null
-    private var timerJob: Job? = null
+    private val buffer0 = EvictingQueue<String>(bufferCapacity)
+    private var trigger = CompletableDeferred<Boolean>()
+    private lateinit var timerJob: Job
 
     init {
         loop()
@@ -22,7 +23,7 @@ class Logger(private val httpService: HttpService) {
 
     private fun loop() = GlobalScope.launch {
         while (true) {
-            if (buffer0.size < sendSize) {
+            if (buffer0.size < sendThreshold) {
                 listen()
             }
             if (buffer0.size > 0) {
@@ -33,18 +34,20 @@ class Logger(private val httpService: HttpService) {
 
     private suspend fun listen() {
         println("[Logger] Waiting...")
-        timerJob = coroutineScope { launch { runTimer() } }
-        trigger?.await()
-        timerJob?.cancel()
         trigger = CompletableDeferred()
+        timerJob = GlobalScope.launch { runTimer() }
+        trigger.await()
+        if (timerJob.isActive) {
+            timerJob.cancel()
+        }
     }
 
     private suspend fun send() {
         println("[Logger] Sending messages...")
-        val size = if (buffer0.size < sendSize) buffer0.size else sendSize
-        val messages = ArrayList<String>(size)
-        synchronized(size) {
-            repeat (size) {
+        val messages = ArrayList<String>(sendThreshold)
+        synchronized(buffer0) {
+            val n = if (buffer0.size < sendThreshold) buffer0.size else sendThreshold
+            repeat(n) {
                 messages.add(buffer0.remove())
             }
         }
@@ -54,14 +57,18 @@ class Logger(private val httpService: HttpService) {
     private suspend fun runTimer() {
         println("[Logger] Starting new timer")
         delay(sendTimeout)
+        if (trigger.isActive) {
+            println("[Logger] Firing trigger (timer)")
+            trigger.complete(true)
+        }
         println("[Logger] Timer finished")
-        trigger?.complete(true)
     }
 
     private fun enoughToSend(size: Int) {
         println("[Logger] Buffer size=$size")
-        if (size >= sendSize) {
-            trigger?.complete(true)
+        if (trigger.isActive && size >= sendThreshold) {
+            println("[Logger] Firing trigger (enough to send)")
+            trigger.complete(true)
         }
     }
 }

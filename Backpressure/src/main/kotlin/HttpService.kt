@@ -4,7 +4,7 @@ import kotlinx.coroutines.delay
 object HttpService {
     suspend fun send(msg: String) {
         println("[HttpService] Sending: \"$msg\"")
-        delay(300)  // simulate long request
+        delay(300)  // simulate http request
         println("[HttpService] Delivered: \"$msg\"")
     }
 }

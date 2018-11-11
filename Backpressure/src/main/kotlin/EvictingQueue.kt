@@ -1,11 +1,12 @@
+import java.lang.IllegalArgumentException
 import java.util.*
 
-class EvictingQueue<E>(val capacity: Int) : Queue<E> {
+class EvictingQueue<E>(private val capacity: Int) : Queue<E> {
     private val delegate: Queue<E>
 
     init {
         if (capacity < 0) {
-            throw IllegalArgumentException("Capacity must be greater or equal to zero.")
+            throw IllegalArgumentException("Capacity must be greater than or equal to zero.")
         }
         delegate = ArrayDeque<E>(capacity)
     }
