@@ -8,6 +8,7 @@ fun main(args: Array<String>) {
 
 private fun testRingBuffer() {
     val rb = RingBuffer()
+    rb.onDestroy()
 }
 
 private fun testLog() {
