@@ -32,10 +32,10 @@ class Logger(private val httpService: HttpService) {
         }
     }
 
-    private suspend fun listen() {
+    private suspend fun listen() = coroutineScope {
         println("[Logger] Waiting...")
         trigger = CompletableDeferred()
-        timerJob = GlobalScope.launch { runTimer() }
+        timerJob = launch { runTimer() }
         trigger.await()
         if (timerJob.isActive) {
             timerJob.cancel()

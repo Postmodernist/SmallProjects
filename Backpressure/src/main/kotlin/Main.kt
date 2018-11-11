@@ -2,6 +2,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 fun main(args: Array<String>) {
+    testRingBuffer()
+//    testLog()
+}
+
+private fun testRingBuffer() {
+    val rb = RingBuffer()
+}
+
+private fun testLog() {
     val logger = Logger(HttpService)
     runBlocking {
         repeat(50) {
