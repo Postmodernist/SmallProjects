@@ -2,7 +2,7 @@ import java.io.File
 import java.io.RandomAccessFile
 
 /**
- * Ring buffer backed by file.
+ * File ring buffer for [String] elements.
  *
  * File header format:
  * [3 bytes] Head
@@ -21,8 +21,8 @@ class RingBuffer(path: String = "ringbuffer") {
 
         private const val HEAD = "RBF "
         private const val VERSION = 1
-        private const val ELEMENT_STRING_SIZE = 1022L
-        private const val CAPACITY = 25
+        private const val ELEMENT_STRING_SIZE = 2L
+        private const val CAPACITY = 3
 
         private const val FILE_HEADER_SIZE = HEAD.length + 12L  // head + version + elements size + capacity
         private const val ELEMENT_SIZE = ELEMENT_STRING_SIZE + 2  // header + string size + terminator
@@ -33,6 +33,8 @@ class RingBuffer(path: String = "ringbuffer") {
     }
 
     private lateinit var buffer: RandomAccessFile
+    private var first = 0  // index of the first element
+    private var last = 0  // index of the last element
 
     init {
         val bufferFile = File(path)
@@ -90,8 +92,7 @@ class RingBuffer(path: String = "ringbuffer") {
         var firstElementIndex = -1
         repeat(capacity) {
             buf.seek(indexToPosition(it))
-            val header = buf.readByte().toInt()
-            if (checkFirst(header)) {
+            if (checkFirst(buf.readByte())) {
                 if (firstElementIndex != -1) {
                     println("$TAG $errorPrefix Multiple first elements found")
                     return false
@@ -110,14 +111,12 @@ class RingBuffer(path: String = "ringbuffer") {
         while (true) {
             buf.seek(cursor)
             cursor = incrementCursor(cursor)
-            val header = buf.readByte().toInt()
-            if (checkValid(header) && positionToIndex(cursor) != firstElementIndex) len++ else break
+            if (checkValid(buf.readByte()) && positionToIndex(cursor) != firstElementIndex) len++ else break
         }
         while (positionToIndex(cursor) != firstElementIndex) {
             buf.seek(cursor)
             cursor = incrementCursor(cursor)
-            val header = buf.readByte().toInt()
-            if (checkValid(header)) {
+            if (checkValid(buf.readByte())) {
                 println("$TAG $errorPrefix Buffer is inconsistent")
                 return false
             }
@@ -130,6 +129,23 @@ class RingBuffer(path: String = "ringbuffer") {
     private fun openFile(bufferFile: File) {
         println("$TAG Restoring buffer")
         buffer = RandomAccessFile(bufferFile, "rwd")
+
+        // Locate first element
+        first = 0
+        buffer.seek(indexToPosition(first))
+        while (first < CAPACITY && !checkFirst(buffer.readByte())) {
+            buffer.seek(indexToPosition(++first))
+        }
+
+        // Locate last element
+        last = first
+        buffer.seek(indexToPosition(last))
+        if (checkValid(buffer.readByte())) {
+            do {
+                last = nextIndex(last)
+                buffer.seek(indexToPosition(last))
+            } while (checkValid(buffer.readByte()) && last != first)
+        }
     }
 
     private fun newFile(bufferFile: File) {
@@ -153,27 +169,31 @@ class RingBuffer(path: String = "ringbuffer") {
         // Write first element header
         buffer.seek(FILE_HEADER_SIZE)
         buffer.writeByte(FIRST_FLAG)
-        buffer.seek(FILE_HEADER_SIZE)
+
+        first = 0
+        last = 0
+        buffer.seek(indexToPosition(first))
     }
 
-    private fun markFirst(header: Int) = header or FIRST_FLAG
+    private fun markFirst(header: Byte) = header.toInt() or FIRST_FLAG
 
-    private fun unmarkFirst(header: Int) = header and VALID_FLAG
+    private fun unmarkFirst(header: Byte) = header.toInt() and VALID_FLAG
 
-    private fun markValid(header: Int) = header or VALID_FLAG
+    private fun markValid(header: Byte) = header.toInt() or VALID_FLAG
 
-    private fun unmarkValid(header: Int) = header and FIRST_FLAG
+    private fun unmarkValid(header: Byte) = header.toInt() and FIRST_FLAG
 
-    private fun checkFirst(header: Int) = header and FIRST_FLAG == FIRST_FLAG
+    private fun checkFirst(header: Byte) = header.toInt() and FIRST_FLAG == FIRST_FLAG
 
-    private fun checkValid(header: Int) = header and VALID_FLAG == VALID_FLAG
+    private fun checkValid(header: Byte) = header.toInt() and VALID_FLAG == VALID_FLAG
 
-    private fun incrementCursor(cursor: Long): Long =
-        indexToPosition((positionToIndex(cursor) + 1) % CAPACITY)
+    private fun nextIndex(index: Int): Int = (index + 1) % CAPACITY
+
+    private fun incrementCursor(cursor: Long): Long = indexToPosition(nextIndex(positionToIndex(cursor)))
 
     private fun positionToIndex(position: Long): Int =
         ((position - FILE_HEADER_SIZE) / ELEMENT_SIZE).toInt()
 
     private fun indexToPosition(index: Int): Long =
-        (index * ELEMENT_SIZE) + FILE_HEADER_SIZE
+        FILE_HEADER_SIZE + (index * ELEMENT_SIZE)
 }
