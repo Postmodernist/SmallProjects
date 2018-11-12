@@ -89,7 +89,7 @@ class RingBuffer(path: String = "ringbuffer") {
         // Validate first element
         var firstElementIndex = -1
         repeat(capacity) {
-            buf.seek(indexToPosition(it, true))
+            buf.seek(indexToPosition(it))
             val header = buf.readByte().toInt()
             if (checkFirst(header)) {
                 if (firstElementIndex != -1) {
@@ -99,19 +99,23 @@ class RingBuffer(path: String = "ringbuffer") {
                 firstElementIndex = it
             }
         }
+        if (firstElementIndex == -1) {
+            println("$TAG $errorPrefix First element not found")
+            return false
+        }
 
         // Validate buffer consistency
-        var cursor = indexToPosition(firstElementIndex, true)
+        var cursor = indexToPosition(firstElementIndex)
         var len: Long = 0
         while (true) {
             buf.seek(cursor)
-            cursor = incrementCursor(cursor, true)
+            cursor = incrementCursor(cursor)
             val header = buf.readByte().toInt()
-            if (checkValid(header) && positionToIndex(cursor, true) != firstElementIndex) len++ else break
+            if (checkValid(header) && positionToIndex(cursor) != firstElementIndex) len++ else break
         }
-        while (positionToIndex(cursor, true) != firstElementIndex) {
+        while (positionToIndex(cursor) != firstElementIndex) {
             buf.seek(cursor)
-            cursor = incrementCursor(cursor, true)
+            cursor = incrementCursor(cursor)
             val header = buf.readByte().toInt()
             if (checkValid(header)) {
                 println("$TAG $errorPrefix Buffer is inconsistent")
@@ -164,12 +168,12 @@ class RingBuffer(path: String = "ringbuffer") {
 
     private fun checkValid(header: Int) = header and VALID_FLAG == VALID_FLAG
 
-    private fun incrementCursor(cursor: Long, absolute: Boolean = false): Long =
-        indexToPosition((positionToIndex(cursor, absolute) + 1) % CAPACITY, absolute)
+    private fun incrementCursor(cursor: Long): Long =
+        indexToPosition((positionToIndex(cursor) + 1) % CAPACITY)
 
-    private fun positionToIndex(position: Long, absolute: Boolean = false): Int =
-        ((if (absolute) position - FILE_HEADER_SIZE else position) / ELEMENT_SIZE).toInt()
+    private fun positionToIndex(position: Long): Int =
+        ((position - FILE_HEADER_SIZE) / ELEMENT_SIZE).toInt()
 
-    private fun indexToPosition(index: Int, absolute: Boolean = false): Long =
-        (index * ELEMENT_SIZE) + (if (absolute) FILE_HEADER_SIZE else 0)
+    private fun indexToPosition(index: Int): Long =
+        (index * ELEMENT_SIZE) + FILE_HEADER_SIZE
 }
