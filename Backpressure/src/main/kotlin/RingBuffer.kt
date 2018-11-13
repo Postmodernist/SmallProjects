@@ -36,6 +36,7 @@ class RingBuffer(path: String = "ringbuffer") {
     }
 
     val size get() = sz
+    val capacity get() = CAPACITY
 
     private lateinit var buffer: RandomAccessFile
     private var first = 0  // index of the first element
@@ -51,11 +52,30 @@ class RingBuffer(path: String = "ringbuffer") {
         }
     }
 
+    /** Closes the buffer file. */
     fun onDestroy() {
         buffer.close()
     }
 
-    /** Inserts a specified element into the buffer, evicting the oldest element if the buffer is full. */
+    /** Removes all of the elements from the buffer. */
+    fun clear() {
+        // Clear headers
+        var cursor = FILE_HEADER_SIZE.toLong()
+        buffer.seek(FILE_HEADER_SIZE.toLong())
+        buffer.writeByte(FIRST_FLAG.toInt())
+        repeat(CAPACITY - 1) {
+            cursor = incrementCursor(cursor)
+            buffer.seek(cursor)
+            buffer.writeByte(0)
+        }
+
+        // Reset state
+        first = 0
+        last = 0
+        sz = 0
+    }
+
+    /** Inserts a specified element into the buffer, evicting the head element if the buffer is full. */
     fun add(element: String) {
         // Truncate and copy element to output array
         val truncated = element.substring(0, element.length.coerceAtMost(ELEMENT_STRING_SIZE))
@@ -90,6 +110,17 @@ class RingBuffer(path: String = "ringbuffer") {
         sz++
     }
 
+    /** Adds all of the elements in the specified collection to the buffer. */
+    fun addAll(elements: Collection<String>) {
+        if (elements.size > capacity) {
+            clear()
+            elements.drop(elements.size - capacity).forEach { add(it) }
+        } else {
+            elements.forEach { add(it) }
+        }
+    }
+
+    /** Retrieves and removes the head of the buffer. */
     fun remove(): String {
         if (sz == 0) {
             throw NoSuchElementException("Trying to remove from empty buffer")
@@ -124,6 +155,17 @@ class RingBuffer(path: String = "ringbuffer") {
         sz--
 
         return element
+    }
+
+    /** Retrieves and removes [n] or all remaining elements of the buffer. */
+    fun removeMany(n: Int): List<String> {
+        val elements = mutableListOf<String>()
+        val k = n.coerceAtMost(sz)
+        repeat(k) {
+            elements.add(remove())
+        }
+
+        return elements
     }
 
     /** Assumes [output] is a byte array of element + header of the next element. */
