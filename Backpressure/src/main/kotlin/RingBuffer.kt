@@ -1,5 +1,7 @@
 import java.io.File
 import java.io.RandomAccessFile
+import kotlin.experimental.and
+import kotlin.experimental.or
 
 /**
  * File ring buffer for [String] elements.
@@ -21,18 +23,21 @@ class RingBuffer(path: String = "ringbuffer") {
 
         private const val HEAD = "RBF "
         private const val VERSION = 1
-        private const val ELEMENT_STRING_SIZE = 2L
+        private const val ELEMENT_STRING_SIZE = 2
         private const val CAPACITY = 3
 
-        private const val FILE_HEADER_SIZE = HEAD.length + 12L  // head + version + elements size + capacity
+        private const val FILE_HEADER_SIZE = HEAD.length + 12  // head + version + elements size + capacity
         private const val ELEMENT_SIZE = ELEMENT_STRING_SIZE + 2  // header + string size + terminator
-        private const val FILE_SIZE = (FILE_HEADER_SIZE + ELEMENT_SIZE * CAPACITY)
+        private const val FILE_SIZE = (FILE_HEADER_SIZE + ELEMENT_SIZE * CAPACITY).toLong()
 
-        private const val FIRST_FLAG = 0b10
-        private const val VALID_FLAG = 0b01
+        private const val FIRST_FLAG: Byte = 0b10
+        private const val VALID_FLAG: Byte = 0b01
     }
 
+    val size get() = sz
+
     private lateinit var buffer: RandomAccessFile
+    private var sz: Long = 0
     private var first = 0  // index of the first element
     private var last = 0  // index of the last element
 
@@ -47,6 +52,61 @@ class RingBuffer(path: String = "ringbuffer") {
 
     fun onDestroy() {
         buffer.close()
+    }
+
+    /** Inserts a specified element into the buffer, evicting the oldest element if the buffer is full. */
+    fun add(element: String) {
+        val truncated = element.substring(0, element.length.coerceAtMost(ELEMENT_STRING_SIZE))
+        val cursor = indexToPosition(last)
+        buffer.seek(cursor)
+        val header = buffer.readByte()
+        buffer.seek(cursor)
+
+        // Build output
+        val output = ByteArray(ELEMENT_SIZE + 1)  // element + header of the next element
+        System.arraycopy(truncated.toByteArray(), 0, output, 1, truncated.length)
+        if (first == last && isValid(header)) {
+            // Buffer is full, evicting
+            output[0] = VALID_FLAG
+            output[ELEMENT_SIZE] = VALID_FLAG or FIRST_FLAG
+            first = nextIndex(first)
+            last = first
+        } else if (first == last && !isValid(header)) {
+            // Buffer is empty
+            output[0] = VALID_FLAG or FIRST_FLAG
+            last = nextIndex(last)
+        } else if (first == nextIndex(last)) {
+            // Writing to the last empty slot
+            output[0] = VALID_FLAG
+            output[ELEMENT_SIZE] = VALID_FLAG or FIRST_FLAG
+            last = first
+        } else {
+            // Writing to partially filled buffer
+            output[0] = VALID_FLAG
+            last = nextIndex(last)
+        }
+
+        // Write output to file
+        if (positionToIndex(cursor) == CAPACITY - 1) {
+            // Traversing edge
+            buffer.write(output.slice(0..output.size - 2).toByteArray())
+            buffer.seek(indexToPosition(last))
+            buffer.writeByte(output[ELEMENT_SIZE].toInt())
+        } else {
+            buffer.write(output)
+        }
+        buffer.seek(indexToPosition(last))
+    }
+
+    fun remove(): String {
+        val input = ByteArray(ELEMENT_SIZE)
+        val cursor = indexToPosition(first)
+        buffer.seek(cursor)
+        buffer.read(input)
+        buffer.seek(cursor)
+
+
+        return ""
     }
 
     private fun validateFile(bufferFile: File): Boolean {
@@ -70,7 +130,7 @@ class RingBuffer(path: String = "ringbuffer") {
             println("$TAG $errorPrefix Version mismatch (expected $VERSION, found $version)")
             return false
         }
-        val elementSize = buf.readInt().toLong()
+        val elementSize = buf.readInt()
         if (ELEMENT_SIZE != elementSize) {
             println("$TAG $errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
             return false
@@ -92,7 +152,7 @@ class RingBuffer(path: String = "ringbuffer") {
         var firstElementIndex = -1
         repeat(capacity) {
             buf.seek(indexToPosition(it))
-            if (checkFirst(buf.readByte())) {
+            if (isFirst(buf.readByte())) {
                 if (firstElementIndex != -1) {
                     println("$TAG $errorPrefix Multiple first elements found")
                     return false
@@ -111,12 +171,12 @@ class RingBuffer(path: String = "ringbuffer") {
         while (true) {
             buf.seek(cursor)
             cursor = incrementCursor(cursor)
-            if (checkValid(buf.readByte()) && positionToIndex(cursor) != firstElementIndex) len++ else break
+            if (isValid(buf.readByte()) && positionToIndex(cursor) != firstElementIndex) len++ else break
         }
         while (positionToIndex(cursor) != firstElementIndex) {
             buf.seek(cursor)
             cursor = incrementCursor(cursor)
-            if (checkValid(buf.readByte())) {
+            if (isValid(buf.readByte())) {
                 println("$TAG $errorPrefix Buffer is inconsistent")
                 return false
             }
@@ -133,19 +193,20 @@ class RingBuffer(path: String = "ringbuffer") {
         // Locate first element
         first = 0
         buffer.seek(indexToPosition(first))
-        while (first < CAPACITY && !checkFirst(buffer.readByte())) {
+        while (first < CAPACITY && !isFirst(buffer.readByte())) {
             buffer.seek(indexToPosition(++first))
         }
 
         // Locate last element
         last = first
         buffer.seek(indexToPosition(last))
-        if (checkValid(buffer.readByte())) {
+        if (isValid(buffer.readByte())) {
             do {
                 last = nextIndex(last)
                 buffer.seek(indexToPosition(last))
-            } while (checkValid(buffer.readByte()) && last != first)
+            } while (isValid(buffer.readByte()) && last != first)
         }
+        buffer.seek(indexToPosition(last))
     }
 
     private fun newFile(bufferFile: File) {
@@ -163,29 +224,29 @@ class RingBuffer(path: String = "ringbuffer") {
         // Write header
         buffer.writeBytes(HEAD)
         buffer.writeInt(VERSION)
-        buffer.writeInt(ELEMENT_SIZE.toInt())
+        buffer.writeInt(ELEMENT_SIZE)
         buffer.writeInt(CAPACITY)
 
         // Write first element header
-        buffer.seek(FILE_HEADER_SIZE)
-        buffer.writeByte(FIRST_FLAG)
+        buffer.seek(FILE_HEADER_SIZE.toLong())
+        buffer.writeByte(FIRST_FLAG.toInt())
 
         first = 0
         last = 0
         buffer.seek(indexToPosition(first))
     }
 
-    private fun markFirst(header: Byte) = header.toInt() or FIRST_FLAG
+    private fun markFirst(header: Byte) = header or FIRST_FLAG
 
-    private fun unmarkFirst(header: Byte) = header.toInt() and VALID_FLAG
+    private fun unmarkFirst(header: Byte) = header and VALID_FLAG
 
-    private fun markValid(header: Byte) = header.toInt() or VALID_FLAG
+    private fun markValid(header: Byte) = header or VALID_FLAG
 
-    private fun unmarkValid(header: Byte) = header.toInt() and FIRST_FLAG
+    private fun unmarkValid(header: Byte) = header and FIRST_FLAG
 
-    private fun checkFirst(header: Byte) = header.toInt() and FIRST_FLAG == FIRST_FLAG
+    private fun isFirst(header: Byte) = header and FIRST_FLAG == FIRST_FLAG
 
-    private fun checkValid(header: Byte) = header.toInt() and VALID_FLAG == VALID_FLAG
+    private fun isValid(header: Byte) = header and VALID_FLAG == VALID_FLAG
 
     private fun nextIndex(index: Int): Int = (index + 1) % CAPACITY
 
@@ -195,5 +256,5 @@ class RingBuffer(path: String = "ringbuffer") {
         ((position - FILE_HEADER_SIZE) / ELEMENT_SIZE).toInt()
 
     private fun indexToPosition(index: Int): Long =
-        FILE_HEADER_SIZE + (index * ELEMENT_SIZE)
+        (FILE_HEADER_SIZE + (index * ELEMENT_SIZE)).toLong()
 }
