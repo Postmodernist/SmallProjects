@@ -8,8 +8,14 @@ fun main(args: Array<String>) {
 
 private fun testRingBuffer() {
     val rb = RingBuffer()
-    rb.add("e")
-    rb.add("u")
+    rb.add("a")
+    rb.add("b")
+    println(rb.size)
+    rb.add("c")
+    println(rb.remove())
+    println(rb.remove())
+    println(rb.size)
+    println(rb.remove())
     rb.onDestroy()
 }
 
