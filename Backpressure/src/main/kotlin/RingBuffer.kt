@@ -104,7 +104,15 @@ class RingBuffer(path: String = "ringbuffer") {
         last = nextIndex(last)
 
         // Write result to file
-        writeOutput(output, index)
+        buffer.seek(indexToPosition(index))
+        if (index == CAPACITY - 1) {
+            // Traverse edge
+            buffer.write(output.sliceArray(0 until output.size - 1))
+            buffer.seek(FILE_HEADER_SIZE.toLong())
+            buffer.writeByte(output[ELEMENT_SIZE].toInt())
+        } else {
+            buffer.write(output)
+        }
 
         // Increment buffer size
         sz++
@@ -126,31 +134,29 @@ class RingBuffer(path: String = "ringbuffer") {
             throw NoSuchElementException("Trying to remove from empty buffer")
         }
 
-        // Read element
-        val input = ByteArray(ELEMENT_SIZE)
         val pos = indexToPosition(first)
-        buffer.seek(pos)
-        buffer.read(input)
 
         // Update current header
         buffer.seek(pos)
         buffer.writeByte(0)
 
+        // Read element
+        val input = ByteArray(ELEMENT_SIZE - 1)
+        buffer.read(input)
+
         // Get string length
         val zero: Byte = 0
         var len = 0
-        while (input[len + 1] != zero) {
+        while (input[len] != zero) {
             len++
         }
 
         // Extract string
-        val element = String(input.sliceArray(1 until len + 1))
+        val element = String(input.sliceArray(0 until len))
 
-        // Update headers of current and next elements
+        // Update header of the next element
         val newHeader = (if (sz == 1) 0 else VALID_FLAG) or FIRST_FLAG
         first = nextIndex(first)
-
-        // Update new header
         buffer.seek(indexToPosition(first))
         buffer.writeByte(newHeader.toInt())
 
@@ -169,20 +175,6 @@ class RingBuffer(path: String = "ringbuffer") {
         }
 
         return elements
-    }
-
-    /** Assumes [output] is a byte array of element + header of the next element. */
-    private fun writeOutput(output: ByteArray, index: Int) {
-        buffer.seek(indexToPosition(index))
-        if (index == CAPACITY - 1) {
-            // Traverse edge
-            buffer.write(output.sliceArray(0 until output.size - 1))
-            buffer.seek(FILE_HEADER_SIZE.toLong())
-            buffer.writeByte(output[ELEMENT_SIZE].toInt())
-        } else {
-            buffer.write(output)
-        }
-
     }
 
     private fun validateFile(bufferFile: File): Boolean {
