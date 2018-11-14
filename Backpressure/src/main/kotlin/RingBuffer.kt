@@ -18,25 +18,23 @@ import kotlin.experimental.or
  *
  * Element content is a zero-terminated character string.
  */
-class RingBuffer(path: String = "ringbuffer") {
+class RingBuffer(path: String = "ringbuffer", val capacity: Int = 10) {
     companion object {
         private const val TAG = "[RingBuffer]"
 
         private const val HEAD = "RBF "
         private const val VERSION = 1
-        private const val ELEMENT_STRING_SIZE = 2
-        private const val CAPACITY = 2
+        private const val ELEMENT_STRING_SIZE = 1022
 
         private const val FILE_HEADER_SIZE = HEAD.length + 12  // head + version + elements size + capacity
         private const val ELEMENT_SIZE = ELEMENT_STRING_SIZE + 2  // header + string size + terminator
-        private const val FILE_SIZE = (FILE_HEADER_SIZE + ELEMENT_SIZE * CAPACITY).toLong()
 
         private const val FIRST_FLAG: Byte = 0b10
         private const val VALID_FLAG: Byte = 0b01
     }
 
+    private val fileSize = (FILE_HEADER_SIZE + ELEMENT_SIZE * capacity).toLong()
     val size get() = sz
-    val capacity get() = CAPACITY
 
     private lateinit var buffer: RandomAccessFile
     private var first = 0  // index of the first element
@@ -63,7 +61,7 @@ class RingBuffer(path: String = "ringbuffer") {
         var cursor = FILE_HEADER_SIZE.toLong()
         buffer.seek(FILE_HEADER_SIZE.toLong())
         buffer.writeByte(FIRST_FLAG.toInt())
-        repeat(CAPACITY - 1) {
+        repeat(capacity - 1) {
             cursor = incrementCursor(cursor)
             buffer.seek(cursor)
             buffer.writeByte(0)
@@ -105,7 +103,7 @@ class RingBuffer(path: String = "ringbuffer") {
 
         // Write result to file
         buffer.seek(indexToPosition(index))
-        if (index == CAPACITY - 1) {
+        if (index == capacity - 1) {
             // Traverse edge
             buffer.write(output.sliceArray(0 until output.size - 1))
             buffer.seek(FILE_HEADER_SIZE.toLong())
@@ -203,16 +201,16 @@ class RingBuffer(path: String = "ringbuffer") {
             println("$TAG $errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
             return false
         }
-        val capacity = buf.readInt()
-        if (CAPACITY != capacity) {
-            println("$TAG $errorPrefix Wrong capacity (expected $CAPACITY, found $capacity)")
+        val foundCapacity = buf.readInt()
+        if (capacity != foundCapacity) {
+            println("$TAG $errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)")
             return false
         }
 
         // Validate file size
         val fileSize = bufferFile.length()
-        if (FILE_SIZE != fileSize) {
-            println("$TAG $errorPrefix Wrong file size (expected $FILE_SIZE, found $fileSize)")
+        if (this.fileSize != fileSize) {
+            println("$TAG $errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)")
             return false
         }
 
@@ -261,7 +259,7 @@ class RingBuffer(path: String = "ringbuffer") {
         // Locate first element
         first = 0
         buffer.seek(indexToPosition(first))
-        while (first < CAPACITY && !isFirst(buffer.readByte())) {
+        while (first < capacity && !isFirst(buffer.readByte())) {
             buffer.seek(indexToPosition(++first))
         }
 
@@ -285,7 +283,7 @@ class RingBuffer(path: String = "ringbuffer") {
         buffer = RandomAccessFile(bufferFile, "rwd")
 
         // Allocate space
-        buffer.seek(FILE_SIZE - 1)
+        buffer.seek(fileSize - 1)
         buffer.writeByte(0)
         buffer.seek(0)
 
@@ -293,7 +291,7 @@ class RingBuffer(path: String = "ringbuffer") {
         buffer.writeBytes(HEAD)
         buffer.writeInt(VERSION)
         buffer.writeInt(ELEMENT_SIZE)
-        buffer.writeInt(CAPACITY)
+        buffer.writeInt(capacity)
 
         // Write first element header
         buffer.seek(FILE_HEADER_SIZE.toLong())
@@ -308,7 +306,7 @@ class RingBuffer(path: String = "ringbuffer") {
 
     private fun isValid(header: Byte) = header and VALID_FLAG == VALID_FLAG
 
-    private fun nextIndex(index: Int): Int = (index + 1) % CAPACITY
+    private fun nextIndex(index: Int): Int = (index + 1) % capacity
 
     private fun incrementCursor(cursor: Long): Long = indexToPosition(nextIndex(positionToIndex(cursor)))
 

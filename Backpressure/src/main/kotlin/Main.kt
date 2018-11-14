@@ -2,8 +2,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 fun main(args: Array<String>) {
-    testRingBuffer()
-//    testLog()
+//    testRingBuffer()
+    testLog()
 }
 
 private fun testRingBuffer() {
