@@ -132,6 +132,10 @@ class RingBuffer(path: String = "ringbuffer") {
         buffer.seek(pos)
         buffer.read(input)
 
+        // Update current header
+        buffer.seek(pos)
+        buffer.writeByte(0)
+
         // Get string length
         val zero: Byte = 0
         var len = 0
@@ -143,13 +147,12 @@ class RingBuffer(path: String = "ringbuffer") {
         val element = String(input.sliceArray(1 until len + 1))
 
         // Update headers of current and next elements
-        val output = ByteArray(ELEMENT_SIZE + 1)  // element + header of the next element
-        output[ELEMENT_SIZE] = (if (sz == 1) 0 else VALID_FLAG) or FIRST_FLAG
-        val index = first
+        val newHeader = (if (sz == 1) 0 else VALID_FLAG) or FIRST_FLAG
         first = nextIndex(first)
 
-        // Write result to file
-        writeOutput(output, index)
+        // Update new header
+        buffer.seek(indexToPosition(first))
+        buffer.writeByte(newHeader.toInt())
 
         // Decrement buffer size
         sz--
