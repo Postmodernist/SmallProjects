@@ -19,9 +19,14 @@ private fun testLog() {
     val logger = Logger(HttpService)
     runBlocking {
         repeat(50) {
-            logger.log("Test message #${it + 1}")
+            logger.log("Test message A #${it + 1}")
             delay(10)
         }
-        delay(60 * 1000)
+        delay(20 * 1000)
+        repeat(10) {
+            logger.log("Test message B #${it + 1}")
+            delay(100)
+        }
+        delay(20 * 1000)
     }
 }
