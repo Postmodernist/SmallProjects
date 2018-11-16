@@ -7,10 +7,11 @@ fun main(args: Array<String>) {
 }
 
 private fun testRingBuffer() {
-    val rb = RingBuffer()
-    rb.add("fdihgfolisd")
-    rb.add("123")
-    rb.add("zz")
+    val rb = RingBuffer(capacity = 3)
+    rb.add("foo")
+    rb.add("bar")
+    rb.add("baz")
+    rb.add("qux")
     rb.remove()
     rb.onDestroy()
 }
