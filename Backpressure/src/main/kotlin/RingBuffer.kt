@@ -21,7 +21,7 @@ import kotlin.experimental.or
  * index converted to string format.
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-class RingBuffer(path: String = "ringbuffer", val capacity: Int = 1000) {
+class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
     companion object {
         private const val TAG = "RingBuffer"
         /** File head */
@@ -41,23 +41,14 @@ class RingBuffer(path: String = "ringbuffer", val capacity: Int = 1000) {
         private const val VALID_FLAG: Byte = 0b01
     }
 
-    private val fileSize = (FILE_HEADER_SIZE + ELEMENT_SIZE * capacity).toLong()
     val size get() = sz
 
-    private lateinit var buffer: RandomAccessFile
+    private val fileSize = (FILE_HEADER_SIZE + ELEMENT_SIZE * capacity).toLong()
+    private var buffer: RandomAccessFile = if (validateFile(file)) openFile(file) else newFile(file)
     private var first = 0  // index of the first element
     private var last = 0  // index of the last element
     private var sz = 0  // buffer size
     private var globalIndex = 0L  // global persistent index for the next log message
-
-    init {
-        val bufferFile = File(path)
-        if (validateFile(bufferFile)) {
-            openFile(bufferFile)
-        } else {
-            newFile(bufferFile)
-        }
-    }
 
     /** Closes the buffer file. */
     fun onDestroy() {
@@ -267,8 +258,8 @@ class RingBuffer(path: String = "ringbuffer", val capacity: Int = 1000) {
         return true
     }
 
-    private fun openFile(bufferFile: File) {
-        buffer = RandomAccessFile(bufferFile, "rwd")
+    private fun openFile(bufferFile: File): RandomAccessFile {
+        val buffer = RandomAccessFile(bufferFile, "rwd")
 
         // Locate first element
         first = 0
@@ -287,13 +278,15 @@ class RingBuffer(path: String = "ringbuffer", val capacity: Int = 1000) {
                 buffer.seek(last.indexToPosition())
             } while (buffer.readByte().isValid() && last != first)
         }
+
+        return buffer
     }
 
-    private fun newFile(bufferFile: File) {
+    private fun newFile(bufferFile: File): RandomAccessFile {
         if (bufferFile.exists()) {
             bufferFile.delete()
         }
-        buffer = RandomAccessFile(bufferFile, "rwd")
+        val buffer = RandomAccessFile(bufferFile, "rwd")
 
         // Allocate space
         buffer.seek(fileSize - 1)
@@ -314,6 +307,8 @@ class RingBuffer(path: String = "ringbuffer", val capacity: Int = 1000) {
         first = 0
         last = 0
         buffer.seek(first.indexToPosition())
+
+        return buffer
     }
 
     private fun Byte.isFirst() = this and FIRST_FLAG == FIRST_FLAG
