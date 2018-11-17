@@ -3,7 +3,6 @@ package coroutines
 import kotlinx.coroutines.*
 
 object Dispatcher {
-
     fun doHardWork(trigger: CompletableDeferred<Boolean>) =
             GlobalScope.launch {
                 println("Hard work started...")
@@ -14,7 +13,6 @@ object Dispatcher {
 }
 
 object Client {
-
     val trigger = CompletableDeferred<Boolean>()
 
     suspend fun waitForTrigger() {

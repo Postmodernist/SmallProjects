@@ -44,11 +44,9 @@ private fun CoroutineScope.launchRefProcessing(
 
 @ExperimentalCoroutinesApi
 @InternalCoroutinesApi
-fun main(args: Array<String>) {
-    runBlocking {
-        // Abort processing after a timeout
-        withTimeout(1000) {
-            processReferences(listOf("Reference1", "Reference2", "Reference3"))
-        }
+fun main(args: Array<String>) = runBlocking {
+    // Abort processing after a timeout
+    withTimeout(1000) {
+        processReferences(listOf("Reference1", "Reference2", "Reference3"))
     }
 }
