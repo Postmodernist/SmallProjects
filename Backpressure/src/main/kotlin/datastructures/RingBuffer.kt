@@ -26,7 +26,7 @@ import kotlin.experimental.or
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
     companion object {
-        private const val TAG = "datastructures.RingBuffer"
+        private const val TAG = "RingBuffer"
         /** File head */
         private const val HEAD = "RBF "
         /** File format version */
@@ -200,18 +200,12 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
         buf.read(headBytes)
         val head = String(headBytes)
         if (HEAD != head) {
-            Log.w(
-                TAG,
-                "$errorPrefix Invalid header (expected '$HEAD', found '$head')"
-            )
+            Log.w(TAG, "$errorPrefix Invalid header (expected '$HEAD', found '$head')")
             return false
         }
         val version = buf.readInt()
         if (VERSION != version) {
-            Log.w(
-                TAG,
-                "$errorPrefix Version mismatch (expected $VERSION, found $version)"
-            )
+            Log.w(TAG, "$errorPrefix Version mismatch (expected $VERSION, found $version)")
             return false
         }
 
@@ -219,28 +213,19 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
 
         val elementSize = buf.readInt()
         if (ELEMENT_SIZE != elementSize) {
-            Log.w(
-                TAG,
-                "$errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)"
-            )
+            Log.w(TAG, "$errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
             return false
         }
         val foundCapacity = buf.readInt()
         if (capacity != foundCapacity) {
-            Log.w(
-                TAG,
-                "$errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)"
-            )
+            Log.w(TAG, "$errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)")
             return false
         }
 
         // Validate file size
         val fileSize = bufferFile.length()
         if (this.fileSize != fileSize) {
-            Log.w(
-                TAG,
-                "$errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)"
-            )
+            Log.w(TAG, "$errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)")
             return false
         }
 

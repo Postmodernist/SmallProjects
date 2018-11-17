@@ -2,9 +2,11 @@ import kotlinx.coroutines.delay
 
 /** Mock http service, */
 object HttpService {
+    private const val TAG = "HttpService"
+
     suspend fun send(msg: String) {
-        Log.i("HttpService", "Sending: '$msg'")
+        Log.i(TAG, "Sending: '$msg'")
         delay(300)  // simulate http request
-        Log.i("HttpService",  "Delivered: '$msg'")
+        Log.i(TAG,  "Delivered: '$msg'")
     }
 }

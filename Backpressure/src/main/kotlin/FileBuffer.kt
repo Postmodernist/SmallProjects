@@ -3,7 +3,7 @@ import kotlinx.coroutines.*
 
 class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (String) -> Unit) {
     companion object {
-        private const val TAG = "[FileBuffer]"
+        private const val TAG = "FileBuffer"
         private const val sendTimeout = 5000L
         private const val sendThreshold = 5
     }
