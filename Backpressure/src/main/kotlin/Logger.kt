@@ -5,7 +5,7 @@ class Logger(httpService: HttpService) {
     private val fileBuffer = FileBuffer(bufferCapacity, httpService::send)
 
     fun log(msg: String) {
-        println("[Logger] Received: \"$msg\"")
+        Log.i("Logger", "Received: '$msg'")
         synchronized(ramBuffer) {
             ramBuffer.add(msg)
         }

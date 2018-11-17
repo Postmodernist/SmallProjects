@@ -16,10 +16,10 @@ object Log {
     }
 
     fun e(tag: String, msg: String) {
-        println("E [$tag] $msg")
+        println("\u001B[91E [$tag] $msg")
     }
 
     fun wtf(tag: String, msg: String) {
-        println("A [$tag] $msg")
+        println("\u001B[91A [$tag] $msg")
     }
 }

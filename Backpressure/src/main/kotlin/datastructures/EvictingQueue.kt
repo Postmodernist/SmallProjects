@@ -1,7 +1,9 @@
-import java.lang.IllegalArgumentException
+package datastructures
+
 import java.util.*
 
-class EvictingQueue<E>(private val capacity: Int) : Queue<E> {
+@Suppress("unused", "MemberVisibilityCanBePrivate")
+class EvictingQueue<E>(val capacity: Int) : Queue<E> {
     private val delegate: Queue<E>
 
     init {

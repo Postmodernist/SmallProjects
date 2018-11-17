@@ -1,3 +1,4 @@
+import datastructures.RingBuffer
 import kotlinx.coroutines.*
 
 class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (String) -> Unit) {
@@ -15,7 +16,7 @@ class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (St
     }
 
     fun add(msg: String) {
-        println("$TAG Received: \"$msg\"")
+        Log.i(TAG, "Received: '$msg'")
         synchronized(buffer) {
             buffer.add(msg)
             enoughToSend(buffer.size)
@@ -34,7 +35,7 @@ class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (St
     }
 
     private suspend fun listen() = coroutineScope {
-        println("$TAG Waiting...")
+        Log.i(TAG, "Waiting...")
         trigger = CompletableDeferred()
         val timerJob = launch { runTimer() }
         trigger.await()
@@ -44,7 +45,7 @@ class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (St
     }
 
     private suspend fun send() {
-        println("$TAG Sending messages...")
+        Log.i(TAG, "Sending messages...")
         val messages = ArrayList<String>(sendThreshold)
         synchronized(buffer) {
             messages.addAll(buffer.removeMany(sendThreshold))
@@ -53,19 +54,19 @@ class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (St
     }
 
     private suspend fun runTimer() {
-        println("$TAG Starting new timer")
+        Log.i(TAG, "Starting new timer")
         delay(sendTimeout)
         if (trigger.isActive) {
-            println("$TAG Firing trigger (timer)")
+            Log.i(TAG, "Firing trigger (timer)")
             trigger.complete(true)
         }
-        println("$TAG Timer finished")
+        Log.i(TAG, "Timer finished")
     }
 
     private fun enoughToSend(size: Int) {
-        println("$TAG Buffer size=$size")
+        Log.i(TAG, "Buffer size=$size")
         if (trigger.isActive && size >= sendThreshold) {
-            println("$TAG Firing trigger (enough to send)")
+            Log.i(TAG, "Firing trigger (enough to send)")
             trigger.complete(true)
         }
     }

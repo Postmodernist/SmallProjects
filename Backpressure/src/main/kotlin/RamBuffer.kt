@@ -1,8 +1,9 @@
+import datastructures.EvictingQueue
 import kotlinx.coroutines.*
 
 class RamBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (String) -> Unit) {
     companion object {
-        private const val TAG = "[RamBuffer]"
+        private const val TAG = "RamBuffer"
         private const val sendTimeout = 5000L
     }
 
@@ -14,7 +15,7 @@ class RamBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (Str
     }
 
     fun add(msg: String) {
-        println("$TAG Received: \"$msg\"")
+        Log.i(TAG, "Received: '$msg'")
         synchronized(buffer) {
             buffer.add(msg)
             enoughToSend()
@@ -33,7 +34,7 @@ class RamBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (Str
     }
 
     private suspend fun listen() = coroutineScope {
-        println("$TAG Waiting...")
+        Log.i(TAG, "Waiting...")
         trigger = CompletableDeferred()
         val timerJob = launch { runTimer() }
         trigger.await()
@@ -43,7 +44,7 @@ class RamBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (Str
     }
 
     private suspend fun send() {
-        println("$TAG Sending message...")
+        Log.i(TAG, "Sending message...")
         var msg: String?
         synchronized(buffer) {
             msg = buffer.remove()
@@ -53,18 +54,18 @@ class RamBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (Str
 
 
     private suspend fun runTimer() {
-        println("$TAG Starting new timer")
+        Log.i(TAG, "Starting new timer")
         delay(sendTimeout)
         if (trigger.isActive) {
-            println("$TAG Firing trigger (timer)")
+            Log.i(TAG, "Firing trigger (timer)")
             trigger.complete(true)
         }
-        println("$TAG Timer finished")
+        Log.i(TAG, "Timer finished")
     }
 
     private fun enoughToSend() {
         if (trigger.isActive) {
-            println("$TAG Firing trigger (enough to send)")
+            Log.i(TAG, "Firing trigger (enough to send)")
             trigger.complete(true)
         }
     }
