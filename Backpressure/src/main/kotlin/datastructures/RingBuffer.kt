@@ -90,8 +90,7 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
         if (first == last && sz > 0) {
             // Buffer is full, evicting
             output[0] = VALID_FLAG
-            output[ELEMENT_SIZE] = VALID_FLAG or
-                    FIRST_FLAG
+            output[ELEMENT_SIZE] = VALID_FLAG or FIRST_FLAG
             first = last.nextIndex()
             sz--
         } else if (first == last && sz == 0) {
@@ -100,8 +99,7 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
         } else if (first == last.nextIndex()) {
             // Writing to the last empty slot
             output[0] = VALID_FLAG
-            output[ELEMENT_SIZE] = VALID_FLAG or
-                    FIRST_FLAG
+            output[ELEMENT_SIZE] = VALID_FLAG or FIRST_FLAG
         } else {
             // Writing to partially filled buffer
             output[0] = VALID_FLAG
