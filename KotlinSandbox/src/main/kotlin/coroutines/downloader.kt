@@ -18,8 +18,7 @@ data class Reference(val location: Location)
 data class LocContent(val loc: Location, val content: Content)
 
 /**
- * Main downloader abstraction.
- * Consumes [Reference]s and incapsulates the downloading and processing machinery.
+ * Abstraction that incapsulates the downloading and processing machinery.
  */
 fun CoroutineScope.processReferences(
         references: ReceiveChannel<Reference>
