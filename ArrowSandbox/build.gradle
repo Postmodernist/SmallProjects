@@ -1,6 +1,6 @@
 buildscript {
     ext.kotlinx_version = '1.0.0'
-    ext.arrow_version = '0.8.0'
+    ext.arrow_version = '0.8.1'
 }
 
 plugins {

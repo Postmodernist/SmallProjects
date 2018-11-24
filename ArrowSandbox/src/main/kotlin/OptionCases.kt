@@ -2,7 +2,6 @@ import arrow.core.*
 import arrow.instances.option.applicative.applicative
 import arrow.instances.option.monad.monad
 import arrow.typeclasses.binding
-import kotlin.random.Random
 
 private fun optionBasics() {
     // Construct values
@@ -81,16 +80,8 @@ private fun sequentialBinding() {
     println(a)
 }
 
-data class UUID(val uuid: Int) {
-    companion object {
-        fun randomUUID() = UUID(Random.nextInt())
-    }
-}
-
-data class Person(val id: UUID, val name: String, val year: Int)
-
 private fun applicativeBuilder() {
-    // Note each Option is if a different type
+    // Note each Option is of a different type
     val maybeId = Option(UUID.randomUUID())
     val maybeName = Option("William Alvin Howard")
     val maybeYear = Option(1926)
