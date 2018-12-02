@@ -1,11 +1,11 @@
 package typereflection;
 
 class Heterogenic {
-    Heterogenic(Class<?> klass, Object arg) {
-        if (klass.equals(String.class) & klass.isInstance(arg)) {
+    Heterogenic(Object arg) {
+        if (arg instanceof String) {
             String v = (String) arg;
             System.out.println(v);
-        } else if (klass.equals(Boolean.class) && klass.isInstance(arg)) {
+        } else if (arg instanceof Boolean) {
             Boolean v = (Boolean) arg;
             System.out.println(v);
         } else {
