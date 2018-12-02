@@ -10,8 +10,8 @@ public class HListMain {
                 cons("One", cons(2, cons(true, nil())));
 
         // Type-safe access
-        if (l.right().right().left()) {
-            System.out.println(l.left().length() == l.right().left());
+        if (l.tail().tail().head()) {
+            System.out.println(l.head().length() == l.tail().head());
         }
 
         // The two lists
@@ -37,7 +37,7 @@ public class HListMain {
                 x = three.append(a, b);
 
         // And we can access the components of the concatenated list in a type-safe manner
-        if (x.right().right().left())
-            System.out.println(x.right().right().right().right().right().left()[1] * 2);  // 4
+        if (x.tail().tail().head())
+            System.out.println(x.tail().tail().tail().tail().tail().head()[1] * 2);  // 4
     }
 }

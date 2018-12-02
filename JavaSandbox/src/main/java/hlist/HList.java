@@ -15,7 +15,7 @@ public class HList<A extends HList<A>> {
     }
 
     /**
-     * List constructor.
+     * Constructs list.
      */
     public static <E, L extends HList<L>> HCons<E, L> cons(final E e, final L l) {
         return new HCons<>(e, l);
@@ -41,11 +41,11 @@ public class HList<A extends HList<A>> {
             this.l = l;
         }
 
-        public E left() {
+        public E head() {
             return e;
         }
 
-        public L right() {
+        public L tail() {
             return l;
         }
     }

@@ -13,18 +13,18 @@ public class HAppend<L, R, LR> {
     }
 
     /**
-     * Appending the empty list.
+     * Appends empty list.
      */
     public static <L extends HList<L>> HAppend<HNil, L, L> append() {
         return new HAppend<>((hNil, l) -> l);
     }
 
     /**
-     * Append nonempty list.
+     * Appends nonempty list.
      */
     public static <X, A extends HList<A>, B, C extends HList<C>, H extends HAppend<A, B, C>>
     HAppend<HCons<X, A>, B, HCons<X, C>> append(final H h) {
-        return new HAppend<>((c, l) -> cons(c.left(), h.append(c.right(), l)));
+        return new HAppend<>((c, l) -> cons(c.head(), h.append(c.tail(), l)));
     }
 
     public LR append(final L l, final R r) {
