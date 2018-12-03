@@ -9,3 +9,5 @@ data class UUID(val uuid: Int) {
         fun randomUUID() = UUID(Random.nextInt())
     }
 }
+
+data class User(val id: Int)
