@@ -1,3 +1,4 @@
+.attach*
 *.iml
 *.class
 *.o
@@ -12,5 +13,6 @@ captures/
 compiled/
 obj/
 out/
+target/
 venv/
 
