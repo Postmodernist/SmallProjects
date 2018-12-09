@@ -29,16 +29,16 @@ case object Half extends Duration
 case object Quarter extends Duration
 
 object Structures {
-    def symbolDuration(symbol: Symbol): Duration =
-        symbol match {
-            case Note(_, duration, _) => duration
-            case Rest(duration) => duration
-        }
+  def symbolDuration(symbol: Symbol): Duration =
+    symbol match {
+      case Note(_, duration, _) => duration
+      case Rest(duration) => duration
+    }
 
-    def fractionOfWhole(duration: Duration): Double =
-        duration match {
-            case Whole => 1.0
-            case Half => 0.5
-            case Quarter => 0.25
-        }
+  def fractionOfWhole(duration: Duration): Double =
+    duration match {
+      case Whole => 1.0
+      case Half => 0.5
+      case Quarter => 0.25
+    }
 }
