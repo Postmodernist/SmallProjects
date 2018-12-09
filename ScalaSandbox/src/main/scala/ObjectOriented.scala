@@ -1,9 +1,5 @@
-case class Rational(var numer: Int, var denom: Int) {
+case class Rational(numer: Int, denom: Int) {
   require(denom > 0, "Denominator must be positive.") // throws IllegalArgumentException
-
-  private val g = gcd(numer, denom)
-  numer = numer / g
-  denom = denom / g
 
   def this(numer: Int) = this(numer, 1) // auxiliary constructor
 
@@ -20,6 +16,18 @@ case class Rational(var numer: Int, var denom: Int) {
   def <(r: Rational): Boolean = numer * r.denom < r.numer * denom
 
   override def toString: String = s"$numer/$denom"
+
+}
+
+object Rational {
+  def apply(numer: Int, denom: Int): Rational = {
+    val g = gcd(numer, denom)
+    new Rational(numer / g, denom / g)
+  }
+
+  def unapply(rational: Rational): Option[(Int, Int)] =
+    if (rational eq null) None
+    else Some((rational.numer, rational.denom))
 
   private def gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
 }
