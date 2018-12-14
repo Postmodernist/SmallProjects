@@ -36,6 +36,6 @@ object HLists {
 
   implicit def hlistNilAppender[L <: HList]: AppendFn[HNil, L] = AppendFn[HNil, L]((_: HNil, l: L) => l)
 
-  implicit def hlistConsAppender[H, T <: HList, L2 <: HList, R <: HList](implicit fn: AppendFn[T, L2]): AppendFn[HLists.HCons[H, T], L2] =
+  implicit def hlistConsAppender[H, T <: HList, L2 <: HList, R <: HList](implicit fn: AppendFn[T, L2]): AppendFn[HCons[H, T], L2] =
     AppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => HCons(l1.head, fn(l1.tail, l2)))
 }

@@ -1,15 +1,15 @@
-class Rational(x: Int, y: Int) {
-
-  lazy val numer: Int = x / g
-  lazy val denom: Int = y / g
-  private val g = gcd(x, y)
-
-  override def toString: String = s"$numer/$denom"
-
-  private def gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
-}
-
 object Typeclasses extends App {
+
+  class Rational(x: Int, y: Int) {
+
+    lazy val numer: Int = x / g
+    lazy val denom: Int = y / g
+    private val g = gcd(x, y)
+
+    override def toString: String = s"$numer/$denom"
+
+    private def gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
+  }
 
   val nums = List(4, 2, -5, 6, 0)
   val fruit = List("pear", "orange", "apple", "pineapple")
