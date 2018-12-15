@@ -1,6 +1,9 @@
 package metascala
 
 object Functions {
+
+  type ->[Arg, F <: TFn1[Arg, _]] = F#Apply[Arg]
+
   trait TFn1B {
     type In
     type Out
@@ -12,9 +15,8 @@ object Functions {
     type Out = O
   }
 
-  type ->[Arg, F <: TFn1[Arg, _]] = F#Apply[Arg]
-
   trait >>[F1 <: TFn1[_, _], F2 <: TFn1[_, _]] extends TFn1[F1#In, F2#Out] {
     type Apply[T] = F2#Apply[F1#Apply[T]]
   }
+
 }
