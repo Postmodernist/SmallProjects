@@ -33,6 +33,11 @@ object Nats {
 
   def toInt[T <: Nat](v: T)(implicit fn: TypeToValue[T, Int]): Int = fn()
 
+  implicit val _0ToInt: TypeToValue[_0, Int] = TypeToValue[_0, Int](0)
+
+  implicit def succToInt[P <: Nat](implicit v: TypeToValue[P, Int]): TypeToValue[Succ[P], Int] =
+    TypeToValue[Succ[P], Int](1 + v.value)
+
   sealed trait Nat extends Addable with Comparable {
     type CompareType = Nat
 
@@ -64,10 +69,6 @@ object Nats {
     def toInt = 0
   }
 
-  implicit val _0ToInt: TypeToValue[_0, Int] = TypeToValue[_0, Int](0)
-
-  implicit def succToInt[P <: Nat](implicit v: TypeToValue[P, Int]): TypeToValue[Succ[P], Int] = TypeToValue[Succ[P], Int](1 + v.value)
-
   final case class Succ[P <: Nat](toInt: Int) extends Nat {
     type Pre = P
     type Is0 = False
@@ -89,5 +90,7 @@ object Nats {
       type Visit0 = False
       type VisitSucc[Pre <: Nat] = P#LessThan[Pre]
     }
+
   }
+
 }

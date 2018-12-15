@@ -17,54 +17,66 @@ object HLists {
   implicit def hlistNilAppender[L <: HList]: AppendFn[HNil, L] = AppendFn[HNil, L]((_: HNil, l: L) => l)
 
   implicit def hlistConsAppender[H, T <: HList, L2 <: HList, R <: HList]
-  (implicit fn: AppendFn[T, L2]): AppendFn[_root_.metascala.HLists.HCons[H, T], L2] = AppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => HCons(l1.head, fn(l1.tail, l2)))
+  (implicit fn: AppendFn[T, L2]): AppendFn[HCons[H, T], L2] =
+    AppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => HCons(l1.head, fn(l1.tail, l2)))
 
   // Reverse append
 
-  implicit def hlistNilReverseAppender[L <: HList]: ReverseAppendFn[HNil, L] = ReverseAppendFn[HNil, L]((_: HNil, l: L) => l)
+  implicit def hlistNilReverseAppender[L <: HList]: ReverseAppendFn[HNil, L] =
+    ReverseAppendFn[HNil, L]((_: HNil, l: L) => l)
 
   implicit def hlistConsReverseAppender[H, T <: HList, L2 <: HList, R <: HList]
-  (implicit fn: ReverseAppendFn[T, HCons[H, L2]]): ReverseAppendFn[_root_.metascala.HLists.HCons[H, T], L2] = ReverseAppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => fn(l1.tail, HCons(l1.head, l2)))
-
+  (implicit fn: ReverseAppendFn[T, HCons[H, L2]]): ReverseAppendFn[HCons[H, T], L2] =
+    ReverseAppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => fn(l1.tail, HCons(l1.head, l2)))
 
   // Nth
 
-  implicit def hlistConsNth0[H, T <: HList]: NthFn[_root_.metascala.HLists.HCons[H, T], _0] = NthFn[HCons[H, T], _0](l => l.head)
+  implicit def hlistConsNth0[H, T <: HList]: NthFn[HCons[H, T], _0] =
+    NthFn[HCons[H, T], _0](l => l.head)
 
-  implicit def hlistConsNth[H, T <: HList, P <: Nat](implicit fn: NthFn[T, P]): NthFn[_root_.metascala.HLists.HCons[H, T], Succ[P]] = NthFn[HCons[H, T], Succ[P]](l => fn(l.tail))
+  implicit def hlistConsNth[H, T <: HList, P <: Nat](implicit fn: NthFn[T, P]): NthFn[HCons[H, T], Succ[P]] =
+    NthFn[HCons[H, T], Succ[P]](l => fn(l.tail))
 
   // Remove nth
 
-  implicit def hlistRemoveNth0[H, T <: HList]: RemoveNthFn[_root_.metascala.HLists.HCons[H, T], _0] = RemoveNthFn[HCons[H, T], _0](l => l.tail)
+  implicit def hlistRemoveNth0[H, T <: HList]: RemoveNthFn[HCons[H, T], _0] =
+    RemoveNthFn[HCons[H, T], _0](l => l.tail)
 
-  implicit def hlistRemoveNth[H, T <: HList, P <: Nat](implicit fn: RemoveNthFn[T, P]): RemoveNthFn[_root_.metascala.HLists.HCons[H, T], Succ[P]] =
+  implicit def hlistRemoveNth[H, T <: HList, P <: Nat](implicit fn: RemoveNthFn[T, P]): RemoveNthFn[HCons[H, T], Succ[P]] =
     RemoveNthFn[HCons[H, T], Succ[P]](l => HCons(l.head, fn(l.tail)))
 
   // Insert nth
 
   implicit def hlistInsertNth0[L <: HList, E]: InsertNthFn[L, _0, E] = InsertNthFn[L, _0, E]((l, elem) => HCons(elem, l))
 
-  implicit def hlistInsertNth[H, T <: HList, P <: Nat, E](implicit fn: InsertNthFn[T, P, E]): InsertNthFn[_root_.metascala.HLists.HCons[H, T], Succ[P], E] =
+  implicit def hlistInsertNth[H, T <: HList, P <: Nat, E](implicit fn: InsertNthFn[T, P, E]):
+  InsertNthFn[HCons[H, T], Succ[P], E] =
     InsertNthFn[HCons[H, T], Succ[P], E]((l, elem) => HCons(l.head, fn(l.tail, elem)))
 
   // Replace by type
 
-  implicit def hlistReplaceByType0[T <: HList, E]: ReplaceByTypeFn[_root_.metascala.HLists.HCons[E, T], _0, E] = ReplaceByTypeFn[HCons[E, T], _0, E]((l, elem) => HCons(elem, l.tail))
+  implicit def hlistReplaceByType0[T <: HList, E]: ReplaceByTypeFn[HCons[E, T], _0, E] =
+    ReplaceByTypeFn[HCons[E, T], _0, E]((l, elem) => HCons(elem, l.tail))
 
-  implicit def hlistReplaceByTypeNthMatch[T <: HList, P <: Nat, E](implicit fn: ReplaceByTypeFn[T, P, E]): ReplaceByTypeFn[_root_.metascala.HLists.HCons[E, T], Succ[P], E] =
+  implicit def hlistReplaceByTypeNthMatch[T <: HList, P <: Nat, E](implicit fn: ReplaceByTypeFn[T, P, E]):
+  ReplaceByTypeFn[HCons[E, T], Succ[P], E] =
     ReplaceByTypeFn[HCons[E, T], Succ[P], E]((l, elem) => HCons(elem, fn(l.tail, elem)))
 
-  implicit def hlistReplaceByTypeNthNoMatch[H, T <: HList, N <: Nat, E](implicit fn: ReplaceByTypeFn[T, N, E]): ReplaceByTypeFn[_root_.metascala.HLists.HCons[H, T], N, E] =
+  implicit def hlistReplaceByTypeNthNoMatch[H, T <: HList, N <: Nat, E](implicit fn: ReplaceByTypeFn[T, N, E]):
+  ReplaceByTypeFn[HCons[H, T], N, E] =
     ReplaceByTypeFn[HCons[H, T], N, E]((l, elem) => HCons(l.head, fn(l.tail, elem)))
 
   // Get by type
 
-  implicit def hlistGetByType0[T <: HList, E]: GetByTypeFn[_root_.metascala.HLists.HCons[E, T], _0, E] = GetByTypeFn[HCons[E, T], _0, E](l => l.head)
+  implicit def hlistGetByType0[T <: HList, E]: GetByTypeFn[HCons[E, T], _0, E] =
+    GetByTypeFn[HCons[E, T], _0, E](l => l.head)
 
-  implicit def hlistGetByTypeNthMatch[T <: HList, P <: Nat, E](implicit fn: GetByTypeFn[T, P, E]): GetByTypeFn[_root_.metascala.HLists.HCons[E, T], Succ[P], E] =
+  implicit def hlistGetByTypeNthMatch[T <: HList, P <: Nat, E](implicit fn: GetByTypeFn[T, P, E]):
+  GetByTypeFn[HCons[E, T], Succ[P], E] =
     GetByTypeFn[HCons[E, T], Succ[P], E](l => fn(l.tail))
 
-  implicit def hlistGetByTypeNthNoMatch[H, T <: HList, N <: Nat, E](implicit fn: GetByTypeFn[T, N, E]): GetByTypeFn[_root_.metascala.HLists.HCons[H, T], N, E] =
+  implicit def hlistGetByTypeNthNoMatch[H, T <: HList, N <: Nat, E](implicit fn: GetByTypeFn[T, N, E]):
+  GetByTypeFn[HCons[H, T], N, E] =
     GetByTypeFn[HCons[H, T], N, E](l => fn(l.tail))
 
   sealed trait HList {
@@ -105,7 +117,7 @@ object HLists {
 
     def nth[N <: Nat](implicit fn: NthFn[This, N]): NthType[This, N] = fn(this)
 
-    def reverse(implicit fn: ReverseAppendFn[This, HNil]): T#ReverseAppend[_root_.metascala.HLists.HCons[H, HNil]] = fn(this, HNil)
+    def reverse(implicit fn: ReverseAppendFn[This, HNil]): T#ReverseAppend[HCons[H, HNil]] = fn(this, HNil)
 
     def remove[N <: Nat](implicit fn: RemoveNthFn[This, N]): RemoveNthType[This, N] = fn(this)
 
