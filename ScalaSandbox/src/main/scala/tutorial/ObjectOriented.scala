@@ -1,3 +1,5 @@
+package tutorial
+
 case class Rational(numer: Int, denom: Int) {
   require(denom > 0, "Denominator must be positive.") // throws IllegalArgumentException
 

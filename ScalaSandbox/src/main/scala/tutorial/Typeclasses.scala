@@ -1,3 +1,5 @@
+package tutorial
+
 object Typeclasses extends App {
 
   class Rational(x: Int, y: Int) {

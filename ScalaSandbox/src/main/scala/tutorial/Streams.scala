@@ -1,3 +1,5 @@
+package tutorial
+
 object Streams extends App {
   val xs = Stream.cons(1, Stream.cons(2, Stream.empty))
 

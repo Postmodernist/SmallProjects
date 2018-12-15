@@ -1,3 +1,5 @@
+package tutorial
+
 sealed trait IntSet {
   def incl(x: Int): IntSet
 

@@ -1,3 +1,5 @@
+package tutorial
+
 import scala.util.{Failure, Success, Try}
 
 object StandardLibrary extends App {

@@ -1,3 +1,5 @@
+package tutorial
+
 import org.scalatest.FunSuite
 
 class StandardLibraryTest extends FunSuite {

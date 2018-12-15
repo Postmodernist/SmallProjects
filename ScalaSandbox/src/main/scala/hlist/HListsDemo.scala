@@ -1,4 +1,6 @@
-import HLists.HNil
+package hlist
+
+import hlist.HLists.HNil
 
 object HListsDemo extends App {
   val a = true :: 3 :: "Foo" :: HNil

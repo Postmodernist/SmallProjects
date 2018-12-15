@@ -1,3 +1,5 @@
+package hlist
+
 object HLists {
   type ::[H, T <: HList] = HCons[H, T]
 

@@ -1,3 +1,5 @@
+package tutorial
+
 import scala.annotation.tailrec
 
 trait Y {

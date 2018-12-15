@@ -1,3 +1,5 @@
+package tutorial
+
 sealed trait Symbol
 
 sealed trait NoteName
