@@ -12,23 +12,23 @@ object HLists {
 
   val HNil = new HNil()
 
-  def asString(hlist: HList): String = {
+  def stringValueOf(hlist: HList): String = {
 
     @tailrec
-    def iter(acc: StringBuilder, lst: HList, i: Nat): Unit = {
+    def traverse(acc: StringBuilder, lst: HList, i: Nat): Unit = {
       lst match {
-        case nil: HNil =>
+        case _: HNil =>
         case HCons(head, tail) =>
           acc.append(head)
           if (tail != HNil) {
             acc.append(", ")
           }
-          iter(acc, tail, new Succ[i.type](i.toInt + 1))
+          traverse(acc, tail, Succ(i.toInt + 1))
       }
     }
 
     val s = new StringBuilder().append("[")
-    iter(s, hlist, _0)
+    traverse(s, hlist, _0)
     s.append("]").toString()
   }
 

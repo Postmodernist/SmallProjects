@@ -1,6 +1,6 @@
 package hlists
 
-import hlists.HLists.HNil
+import hlists.HLists.{HNil, stringValueOf}
 import hlists.Nats._
 
 object HListsDemo extends App {
@@ -9,8 +9,8 @@ object HListsDemo extends App {
 
   val c = a ::: b
 
-  println(HLists.asString(a))
-  println(HLists.asString(HNil))
+  println(stringValueOf(a))
+  println(stringValueOf(HNil))
 
   if (c.nth[_0]) {
     val x = 2.0 * c.nth[_5]
