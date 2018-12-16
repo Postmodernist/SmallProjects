@@ -15,7 +15,7 @@ object HLists {
   def stringValueOf(hlist: HList): String = {
 
     @tailrec
-    def traverse(acc: StringBuilder, lst: HList, i: Nat): Unit = {
+    def collect(acc: StringBuilder, lst: HList): Unit = {
       lst match {
         case _: HNil =>
         case HCons(head, tail) =>
@@ -23,12 +23,12 @@ object HLists {
           if (tail != HNil) {
             acc.append(", ")
           }
-          traverse(acc, tail, Succ(i.toInt + 1))
+          collect(acc, tail)
       }
     }
 
     val s = new StringBuilder().append("[")
-    traverse(s, hlist, _0)
+    collect(s, hlist)
     s.append("]").toString()
   }
 
@@ -36,6 +36,8 @@ object HLists {
     type Head
     type Tail <: HList
     type Append[L <: HList] <: HList
+
+    override def toString: String = stringValueOf(this)
   }
 
   final class HNil extends HList {
@@ -59,12 +61,7 @@ object HLists {
     def :::[L <: HList](l: L)(implicit fn: AppendFn[L, This]): L#Append[This] = fn(l, this)
 
     def nth[N <: Nat](implicit fn: NthFn[This, N]): NthType[This, N] = fn(this)
-
   }
-
-  case class AppendFn[L1 <: HList, L2 <: HList](fn: (L1, L2) => L1#Append[L2]) extends Fn2Wrapper(fn)
-
-  case class NthFn[L <: HList, N <: Nat](fn: L => NthType[L, N]) extends Fn1Wrapper(fn)
 
   // Append
 
@@ -73,6 +70,8 @@ object HLists {
   implicit def hlistConsAppender[H, T <: HList, L2 <: HList, R <: HList](implicit fn: AppendFn[T, L2]): AppendFn[HCons[H, T], L2] =
     AppendFn[HCons[H, T], L2]((l1: HCons[H, T], l2: L2) => HCons(l1.head, fn(l1.tail, l2)))
 
+  case class AppendFn[L1 <: HList, L2 <: HList](fn: (L1, L2) => L1#Append[L2]) extends Fn2Wrapper(fn)
+
   // Nth
 
   implicit def hlistConsNth0[H, T <: HList]: NthFn[HCons[H, T], _0] = NthFn[HCons[H, T], _0](l => l.head)
@@ -80,6 +79,7 @@ object HLists {
   implicit def hlistConsNth[H, T <: HList, P <: Nat](implicit fn: NthFn[T, P]): NthFn[HLists.HCons[H, T], Succ[P]] =
     NthFn[HCons[H, T], Succ[P]](l => fn(l.tail))
 
+  case class NthFn[L <: HList, N <: Nat](fn: L => NthType[L, N]) extends Fn1Wrapper(fn)
 
   final class NthVisitor[L <: HList] extends NatVisitor {
     type ResultType = Any
