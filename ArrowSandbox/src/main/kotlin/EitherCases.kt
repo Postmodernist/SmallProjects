@@ -5,7 +5,6 @@ import arrow.instances.either.applicative.applicative
 import arrow.instances.either.monad.monad
 import arrow.typeclasses.binding
 
-
 private fun eitherBasics() {
     var result: Either<KnownError, Int>
 
@@ -86,13 +85,13 @@ private fun applicativeBuilder() {
     println(a) // Right(Person(<uuid>, "William Alvin Howard", 1926))
 }
 
+@Suppress("UNREACHABLE_CODE", "UNUSED_DESTRUCTURED_PARAMETER_ENTRY")
 private fun applicativeBuilderShortCircuit() {
     // Note each Either is of a different type
     val eId = Right(UUID.randomUUID())
     val eName = Left(KnownError)
     val eYear = Right(1926)
 
-    @Suppress("UNREACHABLE_CODE", "UNUSED_DESTRUCTURED_PARAMETER_ENTRY")
     val a = Either.applicative<KnownError>().map(eId, eName, eYear) {(id, name, year) ->
         Person(id, name, year)
     }.fix()
