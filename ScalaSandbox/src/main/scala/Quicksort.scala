@@ -3,8 +3,8 @@ object Quicksort extends App {
   def qsort[T](l: List[T])(implicit ord: Ordering[T]): List[T] = l match {
     case Nil => Nil
     case x :: xs =>
-      val ys = xs filter (ord lteq(_, x))
-      val zs = xs filter (ord gt(_, x))
+      val ys = xs.filter(ord.lteq(_, x))
+      val zs = xs.filter(ord.gt(_, x))
       qsort(ys) ::: List(x) ::: qsort(zs)
   }
 
