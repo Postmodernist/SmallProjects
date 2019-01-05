@@ -1,3 +1,5 @@
+package algorithms
+
 object LongestIncSeq extends App {
   def lis(xs: List[Int], x: Int = Int.MinValue): List[Int] = xs.filter(_ > x) match {
     case Nil => Nil

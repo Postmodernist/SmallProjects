@@ -1,5 +1,6 @@
-import LongestIncSeq.lis
-import LongestIncSeq.lisMemo
+package algorithms
+
+import algorithms.LongestIncSeq.{lis, lisMemo}
 import org.scalatest.FunSuite
 
 class LongestIncSeqTest extends FunSuite {
