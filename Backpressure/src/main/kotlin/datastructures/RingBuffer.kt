@@ -190,71 +190,72 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
             return false
         }
 
-        val buf = RandomAccessFile(bufferFile, "r")
-        val errorPrefix = "Buffer validation failed:"
+        RandomAccessFile(bufferFile, "r").use { buf ->
+            val errorPrefix = "Buffer validation failed:"
 
-        // Validate file header
-        val headBytes = ByteArray(HEAD.length)
-        buf.read(headBytes)
-        val head = String(headBytes)
-        if (HEAD != head) {
-            Log.w(TAG, "$errorPrefix Invalid header (expected '$HEAD', found '$head')")
-            return false
-        }
-        val version = buf.readInt()
-        if (VERSION != version) {
-            Log.w(TAG, "$errorPrefix Version mismatch (expected $VERSION, found $version)")
-            return false
-        }
+            // Validate file header
+            val headBytes = ByteArray(HEAD.length)
+            buf.read(headBytes)
+            val head = String(headBytes)
+            if (HEAD != head) {
+                Log.w(TAG, "$errorPrefix Invalid header (expected '$HEAD', found '$head')")
+                return false
+            }
+            val version = buf.readInt()
+            if (VERSION != version) {
+                Log.w(TAG, "$errorPrefix Version mismatch (expected $VERSION, found $version)")
+                return false
+            }
 
-        globalIndex = buf.readLong()
+            globalIndex = buf.readLong()
 
-        val elementSize = buf.readInt()
-        if (ELEMENT_SIZE != elementSize) {
-            Log.w(TAG, "$errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
-            return false
-        }
-        val foundCapacity = buf.readInt()
-        if (capacity != foundCapacity) {
-            Log.w(TAG, "$errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)")
-            return false
-        }
+            val elementSize = buf.readInt()
+            if (ELEMENT_SIZE != elementSize) {
+                Log.w(TAG, "$errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
+                return false
+            }
+            val foundCapacity = buf.readInt()
+            if (capacity != foundCapacity) {
+                Log.w(TAG, "$errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)")
+                return false
+            }
 
-        // Validate file size
-        val fileSize = bufferFile.length()
-        if (this.fileSize != fileSize) {
-            Log.w(TAG, "$errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)")
-            return false
-        }
+            // Validate file size
+            val fileSize = bufferFile.length()
+            if (this.fileSize != fileSize) {
+                Log.w(TAG, "$errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)")
+                return false
+            }
 
-        // Validate first element
-        var firstElementIndex = -1
-        repeat(capacity) {
-            buf.seek(it.indexToPosition())
-            if (buf.readByte().isFirst()) {
-                if (firstElementIndex != -1) {
+            // Validate first element
+            var firstElementIndex = -1
+            repeat(capacity) {
+                buf.seek(it.indexToPosition())
+                if (buf.readByte().isFirst()) {
+                    if (firstElementIndex != -1) {
+                        return false
+                    }
+                    firstElementIndex = it
+                }
+            }
+            if (firstElementIndex == -1) {
+                return false
+            }
+
+            // Validate buffer consistency
+            var cursor = firstElementIndex.indexToPosition()
+            var len: Long = 0
+            while (true) {
+                buf.seek(cursor)
+                cursor = cursor.incrementCursor()
+                if (buf.readByte().isValid() && cursor.positionToIndex() != firstElementIndex) len++ else break
+            }
+            while (cursor.positionToIndex() != firstElementIndex) {
+                buf.seek(cursor)
+                cursor = cursor.incrementCursor()
+                if (buf.readByte().isValid()) {
                     return false
                 }
-                firstElementIndex = it
-            }
-        }
-        if (firstElementIndex == -1) {
-            return false
-        }
-
-        // Validate buffer consistency
-        var cursor = firstElementIndex.indexToPosition()
-        var len: Long = 0
-        while (true) {
-            buf.seek(cursor)
-            cursor = cursor.incrementCursor()
-            if (buf.readByte().isValid() && cursor.positionToIndex() != firstElementIndex) len++ else break
-        }
-        while (cursor.positionToIndex() != firstElementIndex) {
-            buf.seek(cursor)
-            cursor = cursor.incrementCursor()
-            if (buf.readByte().isValid()) {
-                return false
             }
         }
 
