@@ -57,7 +57,7 @@ object Knapsack extends App {
       (for (i <- items) yield vs(i)).sum
     } else {
       var value = knapsackBf(W, ws, vs, items, last + 1)
-      val weight = (for (i <- items) yield ws(i)).sum
+      val weight = items.map(ws(_)).sum
       if (weight + ws(last + 1) <= W) {
         value = math.max(value, knapsackBf(W, ws, vs, items :+ (last + 1), last + 1))
       }
