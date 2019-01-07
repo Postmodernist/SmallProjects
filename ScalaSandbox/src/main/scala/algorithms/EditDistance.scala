@@ -5,7 +5,7 @@ import scala.collection.mutable
 object EditDistance extends App {
 
   /** Editing distance (recursive) */
-  def editDistanceR(a: String, b: String, i: Int, j: Int, t: mutable.Map[(Int, Int), Int] = mutable.Map()): Int = {
+  def editDistanceR(a: String, b: String, i: Int, j: Int)(implicit t: mutable.Map[(Int, Int), Int] = mutable.Map()): Int = {
     if (!t.contains((i, j))) {
       if (i == 0) {
         t((i, j)) = j
@@ -14,9 +14,9 @@ object EditDistance extends App {
       } else {
         val diff = if (a(i - 1) == b(j - 1)) 0 else 1
         t((i, j)) = List(
-          editDistanceR(a, b, i - 1, j, t) + 1,
-          editDistanceR(a, b, i, j - 1, t) + 1,
-          editDistanceR(a, b, i - 1, j - 1, t) + diff
+          editDistanceR(a, b, i - 1, j) + 1,
+          editDistanceR(a, b, i, j - 1) + 1,
+          editDistanceR(a, b, i - 1, j - 1) + diff
         ).min
       }
     }

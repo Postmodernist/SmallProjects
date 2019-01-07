@@ -5,11 +5,11 @@ import scala.collection.mutable
 object Knapsack extends App {
 
   /** Knapsack with repetition (recursive). */
-  def knapsackRepR(ws: Array[Int], vs: Array[Int], u: Int, t: mutable.Map[Int, Int] = mutable.Map()): Int = {
+  def knapsackRepR(ws: Array[Int], vs: Array[Int], u: Int)(implicit t: mutable.Map[Int, Int] = mutable.Map()): Int = {
     if (!t.contains(u)) {
       t += (u -> 0)
       for (i <- ws.indices; if ws(i) <= u) {
-        t(u) = math.max(t(u), knapsackRepR(ws, vs, u - ws(i), t) + vs(i))
+        t(u) = math.max(t(u), knapsackRepR(ws, vs, u - ws(i)) + vs(i))
       }
     }
     t(u)
@@ -25,12 +25,12 @@ object Knapsack extends App {
   }
 
   /** Knapsack w/o repetition (recursive). */
-  def knapsackR(ws: Array[Int], vs: Array[Int], u: Int, i: Int, t: mutable.Map[(Int, Int), Int] = mutable.Map()): Int = {
+  def knapsackR(ws: Array[Int], vs: Array[Int], u: Int, i: Int)(implicit t: mutable.Map[(Int, Int), Int] = mutable.Map()): Int = {
     if (!t.contains((u, i))) {
       if (i == 0) {
         t += (u, i) -> 0
       } else {
-        t((u, i)) = knapsackR(ws, vs, u, i - 1, t)
+        t((u, i)) = knapsackR(ws, vs, u, i - 1)
         if (u >= ws(i - 1)) {
           t((u, i)) = math.max(t((u, i)), knapsackR(ws, vs, u - ws(i - 1), i - 1) + vs(i - 1))
         }

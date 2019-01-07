@@ -8,23 +8,22 @@ object LongestIncSeq extends App {
     case h :: t => List(h :: myLis(t, h), myLis(t)).maxBy(_.size)
   }
 
-  def myLisMemo(xs: List[Int], x: Int = Int.MinValue, memo: Map[List[Int], List[Int]] = Map()): List[Int] = {
+  def myLisMemo(xs: List[Int], x: Int = Int.MinValue)(implicit memo: mutable.Map[List[Int], List[Int]] = mutable.Map()): List[Int] = {
     xs.filter(_ > x) match {
       case Nil => Nil
-      case ys if memo contains ys => memo.apply(ys)
+      case ys if memo contains ys => memo(ys)
       case h :: t =>
-        val res = List(h :: myLisMemo(t, h, memo), myLisMemo(t, memo = memo)).maxBy(_.size)
-        memo + ((h :: t) -> res)
-        res
+        memo(h :: t) = List(h :: myLisMemo(t, h), myLisMemo(t)).maxBy(_.size)
+        memo(h :: t)
     }
   }
 
   /** Longest increasing sequence (recursive) */
-  def lisR(a: Array[Int], i: Int, t: mutable.Map[Int, Int] = mutable.Map()): Int = {
+  def lisR(a: Array[Int], i: Int)(implicit t: mutable.Map[Int, Int] = mutable.Map()): Int = {
     if (!t.contains(i)) {
       t(i) = 1
       for (j <- 0 until i; if a(j) < a(i)) {
-        t(i) = math.max(t(i), lisR(a, j, t) + 1)
+        t(i) = math.max(t(i), lisR(a, j) + 1)
       }
     }
     t(i)
@@ -57,8 +56,7 @@ object LongestIncSeq extends App {
   println(myLisMemo(List(7, 2, 1, 3, 8, 4, 9, 1, 2, 6, 5, 9, 3, 8, 1)))
 
   val a = Array(7, 2, 1, 3, 8, 4, 9, 1, 2, 6, 5, 9, 3, 8, 1)
-  val T = mutable.Map[Int, Int]()
-  println(a.indices.map(lisR(a, _, T)).max)
+  println(a.indices.map(lisR(a, _)).max)
 
   println(lis(Array(7, 2, 1, 3, 8, 4, 9, 1, 2, 6, 5, 9, 3, 8, 1)))
 }

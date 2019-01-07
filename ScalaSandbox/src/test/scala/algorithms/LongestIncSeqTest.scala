@@ -3,8 +3,6 @@ package algorithms
 import algorithms.LongestIncSeq.{lis, lisR, myLis, myLisMemo}
 import org.scalatest.FunSuite
 
-import scala.collection.mutable
-
 class LongestIncSeqTest extends FunSuite {
   test("LongestIncSeq.myLis") {
     assert(myLis(List()) === List())
@@ -30,8 +28,7 @@ class LongestIncSeqTest extends FunSuite {
 
   test("LongestIncSeq.lisR") {
     val a = Array(7, 2, 1, 3, 8, 4, 9, 1, 2, 6, 5, 9, 3, 8, 1)
-    val t = mutable.Map[Int, Int]()
-    assert(a.indices.map(lisR(a, _, t)).max === 5)
+    assert(a.indices.map(lisR(a, _)).max === 5)
   }
 
   test("LongestIncSeq.lis") {
