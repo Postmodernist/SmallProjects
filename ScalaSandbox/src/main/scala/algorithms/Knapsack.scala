@@ -28,7 +28,7 @@ object Knapsack extends App {
   def knapsackR(ws: Array[Int], vs: Array[Int], u: Int, i: Int)(implicit t: mutable.Map[(Int, Int), Int] = mutable.Map()): Int = {
     if (!t.contains((u, i))) {
       if (i == 0) {
-        t += (u, i) -> 0
+        t((u, i)) = 0
       } else {
         t((u, i)) = knapsackR(ws, vs, u, i - 1)
         if (u >= ws(i - 1)) {
@@ -42,13 +42,13 @@ object Knapsack extends App {
   /** Knapsack w/o repetition (iterative). */
   def knapsack(W: Int, ws: Array[Int], vs: Array[Int]): Int = {
     val t = Array.ofDim[Int](W + 1, ws.length + 1)
-    for (i <- 1 to ws.length; u <- 0 to W) {
+    for (u <- 0 to W; i <- 1 to ws.length) {
       t(u)(i) = t(u)(i - 1)
-      if (u >= ws(i - 1)) {
+      if (ws(i - 1) <= u) {
         t(u)(i) = math.max(t(u)(i), t(u - ws(i - 1))(i - 1) + vs(i - 1))
       }
     }
-    t(W)(ws.length)
+    t.last.last
   }
 
   /** Knapsack w/o repetition (brute force) */
