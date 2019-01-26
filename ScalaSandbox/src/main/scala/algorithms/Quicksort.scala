@@ -1,3 +1,5 @@
+package algorithms
+
 object Quicksort extends App {
 
   def qsort[T](l: List[T])(implicit ord: Ordering[T]): List[T] = l match {
