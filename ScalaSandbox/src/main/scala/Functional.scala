@@ -16,9 +16,6 @@ object Functional extends App {
   println(ys dropRight 1)
   println(ys take (ys.length - 1))
 
-  val f = {
-    case x: Int if x % 2 == 0 => x
-  }
-  val a = Stream.from(0).collect(f).take(5).toList
+  val a = Stream.from(0).collect({ case x: Int if x % 2 == 0 => x }).take(5).toList
   println(a)
 }
