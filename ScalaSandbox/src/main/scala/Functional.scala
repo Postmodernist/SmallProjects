@@ -1,5 +1,4 @@
-object Functional1 extends App {
-
+object Functional extends App {
   val double: Int => Int = _ * 2
   val quad = double compose double
   (quad andThen println) (3)
