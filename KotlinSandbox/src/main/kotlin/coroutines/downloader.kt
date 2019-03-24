@@ -99,7 +99,7 @@ class MyCoroutineScope : CoroutineScope {
         get() = job + Dispatchers.Default
 }
 
-fun main(args: Array<String>) = runBlocking {
+fun main() = runBlocking {
     val references = Channel<Reference>(Channel.UNLIMITED)
     val myCoroutineScope = MyCoroutineScope()
     myCoroutineScope.processReferences(references)

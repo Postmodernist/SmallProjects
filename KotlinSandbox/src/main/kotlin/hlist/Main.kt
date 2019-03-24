@@ -3,7 +3,7 @@ package hlist
 import hlist.HAppend.Companion.append
 
 
-fun main(args: Array<String>) {
+fun main() {
     val l = cons(listOf("One", "Two"), cons(2, cons(true, nil)))
     if (l.tail.tail.head) {
         println(l.head.size == l.tail.head)  // true

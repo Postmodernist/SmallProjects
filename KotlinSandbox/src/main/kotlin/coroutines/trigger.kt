@@ -21,7 +21,7 @@ object Client {
     }
 }
 
-fun main(args: Array<String>) {
+fun main() {
 
     Dispatcher.doHardWork(Client.trigger)
 

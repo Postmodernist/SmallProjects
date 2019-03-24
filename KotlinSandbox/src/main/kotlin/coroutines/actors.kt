@@ -50,7 +50,7 @@ private fun spin(value: Int, durationMillis: Int = 10): Int {
 }
 
 @ObsoleteCoroutinesApi
-fun main(args: Array<String>) = runBlocking {
+fun main() = runBlocking {
     val start = System.currentTimeMillis()
     val ack = CompletableDeferred<Boolean>()
     (1..101).map { if (it == 101) Doable.Done(ack) else Doable.Spin(it) }

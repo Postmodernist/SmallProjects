@@ -1,10 +1,12 @@
+package various
+
 interface MapSet {
     operator fun <E : Element> get(key: Key<E>): E?
 
     interface Key<E : Element>
 
     interface Element : MapSet {
-        /** A key of this MapSet element. */
+        /** A key of this various.MapSet element. */
         val key: Key<*>
 
         override operator fun <E : Element> get(key: Key<E>): E? =
@@ -32,11 +34,11 @@ class User(private val name: String) : MapSet.Element {
     companion object Key : MapSet.Key<User>
 
     override val key = Key
-    override fun toString() = "User(name=$name)"
+    override fun toString() = "various.User(name=$name)"
 }
 
-fun main(args: Array<String>) {
+fun main() {
     val mapSet = MapSetImpl()
-    mapSet.put(User.Key, User("Tom"))
-    println(mapSet[User.Key])
+    mapSet.put(User, User("Tom"))
+    println(mapSet[User])
 }
