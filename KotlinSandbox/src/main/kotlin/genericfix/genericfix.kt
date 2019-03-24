@@ -1,5 +1,6 @@
 package genericfix
 
+@Suppress("USELESS_IS_CHECK")
 fun main() {
     val a = listOf("ab", "cd").fix()
     val b = arrayOf("ef", "gh").fix()
