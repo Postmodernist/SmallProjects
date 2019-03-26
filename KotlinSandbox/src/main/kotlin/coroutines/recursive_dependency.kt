@@ -6,6 +6,6 @@ fun seq(): Sequence<Int> = sequence {
     yieldAll(x())
 }
 
-fun main(args: Array<String>) {
+fun main() {
     seq().take(10).forEach { println(it) }
 }

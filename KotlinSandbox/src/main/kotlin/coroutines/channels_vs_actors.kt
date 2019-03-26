@@ -40,7 +40,7 @@ private fun sendWithActors() = runBlocking {
 }
 
 @ObsoleteCoroutinesApi
-fun main(args: Array<String>) {
+fun main() {
     sendWithChannels()
     sendWithActors()
 }

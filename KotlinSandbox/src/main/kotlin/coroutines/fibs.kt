@@ -1,6 +1,6 @@
 package coroutines
 
-fun main(args: Array<String>) {
+fun main() {
   val fib: Sequence<Int> = sequence {
     var a = 1
     var b = 1

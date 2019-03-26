@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
-fun main(args: Array<String>) = runBlocking {
+fun main() = runBlocking {
     // create a channel that produces numbers from 1 to 3 with 200ms delays between them
     val source = produce {
         println("Begin") // mark the beginning of this coroutine in output

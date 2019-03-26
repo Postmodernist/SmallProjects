@@ -1,3 +1,5 @@
+package various
+
 import java.util.*
 
 fun toHistogram(starts: IntArray, ends: IntArray): Map<Int, Int> {
@@ -24,7 +26,7 @@ fun getSegmentCount(starts: IntArray, ends: IntArray, points: IntArray): IntArra
   }
 }
 
-fun main(args: Array<String>) {
+fun main() {
   val starts = intArrayOf(1, 3, 10, 3)
   val ends = intArrayOf(2, 15, 20, 10)
   println(starts.zip(ends).sortedWith(compareBy({ it.first }, { it.second })))

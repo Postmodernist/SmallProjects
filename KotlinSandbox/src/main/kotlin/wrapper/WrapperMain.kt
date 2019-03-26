@@ -8,7 +8,7 @@ fun bar() = "bar"
 fun barUpgrade() = true to "barUpgrade"
 fun barWrapped() = fun0Wrap(Upgradable.KEY_2, ::bar, :: barUpgrade)
 
-fun main(args: Array<String>) {
+fun main() {
     println(fooWrapped())
     println(fooWrapped())
     Upgradable.KEY_1.upgrade = true
