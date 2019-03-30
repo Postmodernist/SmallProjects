@@ -1,6 +1,11 @@
 package various
 
-inline fun <T> loop(init: T, cond: (T) -> Boolean, next: (T) -> T, block: (T) -> Unit) {
+inline fun <T> loop(
+        init: T,
+        cond: (T) -> Boolean,
+        next: (T) -> T,
+        block: (T) -> Unit
+) {
     var i = init
     while (cond(i)) {
         block(i)
