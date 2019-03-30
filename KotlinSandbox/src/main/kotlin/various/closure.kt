@@ -1,44 +1,45 @@
 package various
 
-private typealias Action = () -> Unit
+typealias Block = () -> Unit
 
 fun test1() {
-    val fis = mutableListOf<Action>()
+    val fis = mutableListOf<Block>()
     for (i in 0..4) {
-        fis.add { println(i) }
+        fis.add { print(i) }
     }
     for (fi in fis) {
         fi()
     }
+    println()
 }
 
 fun test2() {
-    val fis = mutableListOf<Action>()
+    val fis = mutableListOf<Block>()
     var outer: Int
     for (i in 0..4) {
         outer = i
-        fis.add { println(outer) }
+        fis.add { print(outer) }
     }
     for (fi in fis) {
         fi()
     }
+    println()
 }
 
 fun test3() {
-    val fis = mutableListOf<Action>()
+    val fis = mutableListOf<Block>()
     for (i in 0..4) {
         val inner: Int = i
-        fis.add { println(inner) }
+        fis.add { print(inner) }
     }
     for (fi in fis) {
         fi()
     }
+    println()
 }
 
 fun main() {
     test1()
-    println()
     test2()
-    println()
     test3()
 }
