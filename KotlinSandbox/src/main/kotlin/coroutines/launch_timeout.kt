@@ -6,9 +6,9 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 typealias SuspendingBlock = suspend CoroutineScope.() -> Unit
 
-data class LaunchT(var block: SuspendingBlock? = null,
-                   var blockT: SuspendingBlock? = null,
-                   var timeMillis: Long? = null)
+data class LaunchT(var block: SuspendingBlock = {},
+                   var blockT: SuspendingBlock = {},
+                   var timeMillis: Long = Long.MAX_VALUE)
 
 fun LaunchT.block(block: SuspendingBlock) {
     this.block = block
@@ -22,18 +22,16 @@ fun CoroutineScope.launchT(
         context: CoroutineContext = EmptyCoroutineContext,
         start: CoroutineStart = CoroutineStart.DEFAULT,
         blocks: LaunchT.() -> Unit
-): Job {
-    val b = LaunchT().apply(blocks)
-    return launch(context, start) {
-        val coroutine = this.coroutineContext
-        launch {
-            delay(b.timeMillis!!)
-            b.blockT!!(this)
-            coroutine.cancel()
-        }
-        b.block!!(this)
+): Job = launch(context, start) {
+    val coroutine = this.coroutineContext
+    val t = LaunchT().apply(blocks)
+    launch {
+        delay(t.timeMillis)
+        (t.blockT)()
         coroutine.cancel()
     }
+    (t.block)()
+    coroutine.cancel()
 }
 
 fun main() {
