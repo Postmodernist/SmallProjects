@@ -1,4 +1,4 @@
-package genericfix
+package various
 
 @Suppress("USELESS_IS_CHECK")
 fun main() {
