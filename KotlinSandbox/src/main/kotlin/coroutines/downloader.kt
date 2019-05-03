@@ -4,18 +4,87 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.selects.select
-import kotlin.coroutines.CoroutineContext
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
-const val N_WORKERS = 4
+private const val N_WORKERS = 4
 
-data class Location(val name: String)
-
-data class Content(val body: String)
-
-data class Reference(val location: Location)
-
+data class Reference(val id: Int)
+data class Location(val id: Int)
+data class Content(val id: Int)
 data class LocContent(val loc: Location, val content: Content)
+
+fun Reference.resolveLocation(): Location {
+    log("Resolving location for $this")
+    return Location(id)
+}
+
+suspend fun downloadContent(loc: Location): Content {
+    log("Downloading $loc")
+    delay(10)
+    return Content(loc.id)
+}
+
+fun processContent(ref: Reference, content: Content) {
+    log("Processing $ref $content")
+}
+
+private fun log(msg: String) {
+    val time = SimpleDateFormat("HH:mm:ss.sss").format(Date())
+    println("$time [${Thread.currentThread().name}] $msg")
+}
+
+/**
+ * Downloader.
+ * Consumes [Reference]s, resolves [Location]s and dispatches download jobs to [worker]s.
+ */
+fun CoroutineScope.downloader(
+        requested: MutableMap<Location, MutableList<Reference>>,
+        references: ReceiveChannel<Reference>,
+        locations: SendChannel<Location>
+) = launch {
+    for (ref in references) {
+        val loc = ref.resolveLocation()
+        val refs = requested[loc]
+        if (refs == null) {
+            requested[loc] = mutableListOf(ref)
+            locations.send(loc)
+        } else {
+            refs.add(ref)
+        }
+    }
+}
+
+/**
+ * Worker.
+ * Consumes [Location]s and emits [LocContent]s.
+ */
+fun CoroutineScope.worker(
+        locations: ReceiveChannel<Location>,
+        contents: SendChannel<LocContent>
+) = launch {
+    for (loc in locations) {
+        val content = downloadContent(loc)
+        contents.send(LocContent(loc, content))
+    }
+}
+
+/**
+ * Processor.
+ * Consumes [LocContent]s from workers and processes it.
+ */
+fun CoroutineScope.processor(
+        requested: MutableMap<Location, MutableList<Reference>>,
+        contents: ReceiveChannel<LocContent>
+) = launch {
+    for ((loc, content) in contents) {
+        val refs = requested.remove(loc) ?: continue
+        for (ref in refs) {
+            processContent(ref, content)
+        }
+    }
+}
 
 /**
  * Abstraction that incapsulates the downloading and processing machinery.
@@ -23,89 +92,21 @@ data class LocContent(val loc: Location, val content: Content)
 fun CoroutineScope.processReferences(
         references: ReceiveChannel<Reference>
 ) {
-    val locations = Channel<Location>(Channel.UNLIMITED)
-    val contents = Channel<LocContent>(Channel.UNLIMITED)
-    repeat(N_WORKERS) { worker(it, locations, contents) }  // create workers
-    downloader(references, locations, contents)  // launch downloader agent
-}
-
-/**
- * Downloader agent.
- * Consumes [Reference]s, resolves [Location]s and dispatches download jobs to [worker]s.
- * Consumes [LocContent]s from workers and processes it.
- */
-fun CoroutineScope.downloader(
-        references: ReceiveChannel<Reference>,
-        locations: SendChannel<Location>,
-        contents: ReceiveChannel<LocContent>
-) = launch {
-    val requested = mutableMapOf<Location, MutableList<Reference>>()
-    while (true) {
-        select<Unit> {
-            references.onReceive { ref ->
-                println("[downloader] Received reference to ${ref.location}'")
-                val loc = ref.location
-                val refs = requested[loc]
-                if (refs == null) {
-                    requested[loc] = mutableListOf(ref)
-                    locations.send(loc)
-                } else {
-                    refs.add(ref)
-                }
-            }
-            contents.onReceive { (loc, content) ->
-                println("[downloader] Download finished: $loc -> $content")
-                val refs = requested.remove(loc)!!
-                for (ref in refs) {
-                    processContent(ref, content)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Worker coroutine for downloading content.
- * Consumes [Location]s and emits [LocContent]s.
- */
-fun CoroutineScope.worker(
-        id: Int,
-        locations: ReceiveChannel<Location>,
-        contents: SendChannel<LocContent>
-) = launch {
-    for (loc in locations) {
-        println("[worker-$id] Downloading data from ${loc.name}")
-        val content = downloadContent(loc)
-        println("[worker-$id] Sending $content")
-        contents.send(LocContent(loc, content))
-    }
-}
-
-/** Mocks downloading function. */
-suspend fun downloadContent(location: Location): Content {
-    delay(300)
-    return Content("Data from ${location.name}")
-}
-
-/** Mocks content processing. */
-fun processContent(reference: Reference, content: Content) {
-    println("[processContent] Processing $reference and $content")
-}
-
-/** Custom [CoroutineScope] for controlling [processReferences] service. */
-class MyCoroutineScope : CoroutineScope {
-    val job = Job()
-    override val coroutineContext: CoroutineContext
-        get() = job + Dispatchers.Default
+    val requested = ConcurrentHashMap<Location, MutableList<Reference>>()
+    val locations = Channel<Location>()
+    val contents = Channel<LocContent>()
+    repeat(N_WORKERS) { worker(locations, contents) }
+    downloader(requested, references, locations)
+    processor(requested, contents)
 }
 
 fun main() = runBlocking {
-    val references = Channel<Reference>(Channel.UNLIMITED)
-    val myCoroutineScope = MyCoroutineScope()
-    myCoroutineScope.processReferences(references)
-    repeat(10) {
-        references.send(Reference(Location("url-$it")))
+    withTimeout(3000) {
+        val references = Channel<Reference>()
+        processReferences(references)
+        var i = 1
+        while (true) {
+            references.send(Reference(i++))
+        }
     }
-    delay(5000)
-    myCoroutineScope.job.cancel()
 }
