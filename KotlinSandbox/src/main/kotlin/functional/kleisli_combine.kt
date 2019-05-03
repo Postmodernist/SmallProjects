@@ -1,26 +1,33 @@
 package functional
 
-class Opt<T>(val v: T?, val isValid: Boolean)
+import kotlin.math.sqrt
 
-infix fun <A, B, C> ((B) -> Opt<C>).fish(f: (A) -> Opt<B>): (A) -> Opt<C> = { x ->
-    val y = f(x)
-    if (!y.isValid) Opt(null, false) else this(y.v!!)
+/* Data type Optional */
+class Opt<T>(val value: T? = null, val isValid: Boolean = false) {
+    constructor(value: T) : this(value, true)
 }
 
+/* Composition */
+infix fun <A, B, C> ((B) -> Opt<C>).after(f: (A) -> Opt<B>): (A) -> Opt<C> = { x ->
+    val y = f(x)
+    if (!y.isValid) Opt(null, false) else this(y.value!!)
+}
+
+/* Identity */
+fun <T> optId(x: T?): Opt<T> = if (x != null) Opt(x) else Opt()
+
+val safeSqrt: (Double) -> Opt<Double> = { x -> if (x >= 0) Opt(sqrt(x)) else Opt() }
+
+val safeReciprocal: (Double) -> Opt<Double> = { x -> if (x != 0.0) Opt(1 / x) else Opt() }
+
 fun main() {
-    val f: (Int) -> Opt<Int> = { x ->
-        if (x >= 0) Opt(x % 10, true) else Opt(null, false)
+    val sqrtReciprocal = safeSqrt after safeReciprocal
+    val log: (Double) -> Unit = { x ->
+        val opt = sqrtReciprocal(x)
+        if (opt.isValid) println(opt.value) else println("oops...")
     }
 
-    val g: (Int) -> Opt<String> = { x ->
-        if (x % 2 == 0) Opt("even", true) else Opt(null, false)
-    }
-
-    val log: (Int) -> Unit = { x ->
-        with((g fish f)(x)) { if (isValid) println(v) else println("oops...") }
-    }
-
-    log(-42)
-    log(42)
-    log(111)
+    log(42.0)
+    log(-42.0)
+    log(0.0)
 }
