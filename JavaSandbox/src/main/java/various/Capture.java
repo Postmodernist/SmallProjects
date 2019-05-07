@@ -1,15 +1,15 @@
 package various;
 
 public class Capture {
-    public String foo;
+    private String foo;
     public Holder holder;
 
     public Capture() {
-        holder = new Holder() {
-            @Override
-            public void invoke() {
-                System.out.println(foo);
-            }
+        int a = 1;
+
+        holder = () -> {
+            int b = a;
+            System.out.println(Capture.this.foo);
         };
     }
 
@@ -19,10 +19,10 @@ public class Capture {
         c.foo = "hello";
         c.holder.invoke();
     }
+}
 
-    interface Holder {
-        void invoke();
-    }
+interface Holder {
+    void invoke();
 }
 
 
