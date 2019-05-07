@@ -9,7 +9,7 @@ public class Capture {
 
         holder = () -> {
             int b = a;
-            System.out.println(Capture.this.foo);
+            System.out.println(foo);
         };
     }
 
