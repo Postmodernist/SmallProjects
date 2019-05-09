@@ -1,4 +1,4 @@
-package various
+package functional
 
 infix fun <T1, T2, T3> ((T2) -> T3).after(f: (T1) -> T2) = { x: T1 -> this(f(x)) }
 infix fun <T1, T2, T3> ((T1) -> T2).andThen(f: (T2) -> T3) = { x: T1 -> f(this(x)) }
