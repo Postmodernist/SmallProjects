@@ -1,6 +1,6 @@
 package datastructs
 
-interface Heap<T : Any> {
+interface Heap<T : Comparable<T>> {
     fun peek(): T?
     fun extract(): T?
     fun insert(element: T): Boolean
