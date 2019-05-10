@@ -35,26 +35,26 @@ class BinaryHeap<T : Comparable<T>> private constructor() : Heap<T> {
         return root
     }
 
-    /** Inserts the specified element into this heap. */
-    override fun insert(element: T): Boolean {
+    /** Inserts the specified key into this heap. */
+    override fun insert(key: T): Boolean {
         val s = size
         if (s >= heap.size) grow(s + 1)
         size = s + 1
         if (s == 0) {
-            heap[0] = element
+            heap[0] = key
         } else {
-            siftUp(s, element)
+            siftUp(s, key)
         }
         return true
     }
 
     /**
-     * Removes a single instance of the specified element from this heap,
+     * Removes a single instance of the specified key from this heap,
      * if it is present.
      */
     @Suppress("UNCHECKED_CAST")
-    override fun remove(element: T): Boolean {
-        val i = heap.indexOf(element)
+    override fun remove(key: T): Boolean {
+        val i = heap.indexOf(key)
         if (i == -1) return false
         val s = --size
         if (s == i) {
@@ -69,16 +69,16 @@ class BinaryHeap<T : Comparable<T>> private constructor() : Heap<T> {
     }
 
     /**
-     * Swaps an instance of the specified element with newElement.
+     * Swaps an instance of the specified key with newKey.
      */
-    override fun modify(element: T, newElement: T): Boolean {
-        val i = heap.indexOf(element)
+    override fun modify(key: T, newKey: T): Boolean {
+        val i = heap.indexOf(key)
         if (i == -1) return false
         if (i >= size ushr 1) { // leaf element
-            siftUp(i, newElement)
+            siftUp(i, newKey)
         } else { // non-leaf element
-            siftDown(i, newElement)
-            if (heap[i] == newElement) siftUp(i, newElement)
+            siftDown(i, newKey)
+            if (heap[i] == newKey) siftUp(i, newKey)
         }
         return true
     }
