@@ -5,17 +5,15 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.*
-import kotlin.Comparator
 import kotlin.collections.ArrayList
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 
 fun main() {
-    val cmp: Comparator<Int> = Comparator.naturalOrder<Int>()
     val commands = makeCommandsQueue()
 
     val task1 = GlobalScope.launch {
-        val ds = BinaryHeap(cmp)
+        val ds = BinaryHeap<Int>()
         val t = measureTimeMillis {
             for (command in commands) {
                 when (command) {
@@ -50,7 +48,7 @@ fun main() {
 
 private fun makeCommandsQueue(): Array<Command> {
     val elements = ArrayList<Int>()
-    return Array(1000_000) { i ->
+    return Array(1_000_000) { i ->
         if (i < 1000) {
             val element = Random.nextInt(1_000_000)
             elements.add(element)
@@ -84,4 +82,3 @@ sealed class Command {
     data class Remove(val element: Int) : Command()
     object Extract : Command()
 }
-

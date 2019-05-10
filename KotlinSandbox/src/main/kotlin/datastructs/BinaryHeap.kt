@@ -2,7 +2,7 @@ package datastructs
 
 import java.util.*
 
-class BinaryHeap<T : Any> private constructor(private val comparator: Comparator<T>) : Heap<T> {
+class BinaryHeap<T : Comparable<T>> private constructor() : Heap<T> {
 
     private lateinit var heap: Array<Any?>
 
@@ -10,11 +10,11 @@ class BinaryHeap<T : Any> private constructor(private val comparator: Comparator
     var size: Int = 0
         private set
 
-    constructor(comparator: Comparator<T>, initialCapacity: Int = DEFAULT_CAPACITY) : this(comparator) {
+    constructor(initialCapacity: Int = DEFAULT_CAPACITY) : this() {
         heap = Array(initialCapacity) { null }
     }
 
-    constructor(comparator: Comparator<T>, c: Collection<T>) : this(comparator) {
+    constructor(c: Collection<T>) : this() {
         heap = c.toTypedArray()
         heapify()
         size = c.size
@@ -115,7 +115,7 @@ class BinaryHeap<T : Any> private constructor(private val comparator: Comparator
         while (k > 0) {
             val parent = k.parent()
             val p = heap[parent]
-            if (comparator.compare(x, p as T) >= 0) break
+            if (x >= (p as T)) break
             heap[k] = p
             k = parent
         }
@@ -135,11 +135,11 @@ class BinaryHeap<T : Any> private constructor(private val comparator: Comparator
             var child = k.leftChild()
             var c = heap[child]
             val right = child + 1
-            if (right < size && comparator.compare(c as T, heap[right] as T) > 0) {
+            if (right < size && (c as T) > (heap[right] as T)) {
                 child = right
                 c = heap[right]
             }
-            if (comparator.compare(x, c as T) <= 0) break
+            if (x <= (c as T)) break
             heap[k] = c
             k = child
         }
