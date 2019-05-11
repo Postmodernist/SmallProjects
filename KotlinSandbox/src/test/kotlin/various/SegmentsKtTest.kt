@@ -1,8 +1,8 @@
+package various
+
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import various.getSegmentCount
-import various.toHistogram
 
 class SegmentsKtTest {
 
