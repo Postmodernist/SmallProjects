@@ -18,8 +18,8 @@ fun main() {
             for (command in commands) {
                 when (command) {
                     is Insert -> ds.insert(command.element)
-                    is Remove -> ds.remove(command.element)
                     is Extract -> ds.extract()
+                    is Remove -> ds.remove(command.element)
                 }
             }
         }
@@ -32,17 +32,32 @@ fun main() {
             for (command in commands) {
                 when (command) {
                     is Insert -> ds.offer(command.element)
-                    is Remove -> ds.remove(command.element)
                     is Extract -> ds.poll()
+                    is Remove -> ds.remove(command.element)
                 }
             }
         }
         println("[${Thread.currentThread().name}] PriorityQueue finished, t = ${t}ms")
     }
 
+    val task3 = GlobalScope.launch {
+        val ds = FibonacciHeap<Int>()
+        val t = measureTimeMillis {
+            for (command in commands) {
+                when (command) {
+                    is Insert -> ds.insert(command.element)
+                    is Extract -> ds.extract()
+                    is Remove -> ds.remove(command.element)
+                }
+            }
+        }
+        println("[${Thread.currentThread().name}] FibonacciHeap finished, t = ${t}ms")
+    }
+
     runBlocking {
         task1.join()
         task2.join()
+        task3.join()
     }
 }
 
@@ -54,22 +69,22 @@ private fun makeCommandsQueue(): Array<Command> {
             elements.add(element)
             Insert(element)
         } else {
-            when (if (elements.isEmpty()) 0 else Random.nextInt(3)) {
+            when (if (elements.isEmpty()) 0 else Random.nextInt(2)) {
                 0 -> {
                     val element = Random.nextInt(1_000_000)
                     elements.add(element)
                     Insert(element)
                 }
                 1 -> {
+                    val element = elements.min()!!
+                    elements.remove(element)
+                    Extract
+                }
+                2 -> {
                     val j = Random.nextInt(elements.size)
                     val element = elements[j]
                     elements.removeAt(j)
                     Remove(element)
-                }
-                2 -> {
-                    val element = elements.min()!!
-                    elements.remove(element)
-                    Extract
                 }
                 else -> throw RuntimeException("Wtf?")
             }
@@ -79,6 +94,6 @@ private fun makeCommandsQueue(): Array<Command> {
 
 sealed class Command {
     data class Insert(val element: Int) : Command()
-    data class Remove(val element: Int) : Command()
     object Extract : Command()
+    data class Remove(val element: Int) : Command()
 }

@@ -3,6 +3,8 @@ package datastructs
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.*
+import kotlin.random.Random as R
 
 class FibonacciHeapTest {
 
@@ -90,5 +92,42 @@ class FibonacciHeapTest {
         assertEquals(0, g.size)
         val a = Array(6) { h.extract() }
         assertArrayEquals(arrayOf(1, 2, 5, 8, 12, 42), a)
+    }
+
+    @Test
+    fun randomTest() {
+        val h = FibonacciHeap<Int>()
+        val q = PriorityQueue<Int>()
+        val hOut = ArrayList<Int>()
+        val qOut = ArrayList<Int>()
+        repeat(1000) {
+            val k = R.nextInt()
+            h.insert(k)
+            q.offer(k)
+        }
+        repeat(1000) {
+            when (R.nextInt(3)) {
+                0 -> {
+                    val k = R.nextInt()
+                    h.insert(k)
+                    q.offer(k)
+                }
+                1 -> {
+                    val x = h.extract()
+                    if (x != null) hOut.add(x)
+                    val y = q.poll()
+                    if (y != null) qOut.add(y)
+                }
+                2 -> {
+                    if (q.size > 0) {
+                        val i = R.nextInt(q.size)
+                        val k = q.toArray()[i] as Int
+                        h.remove(k)
+                        q.remove(k)
+                    }
+                }
+            }
+        }
+        assertArrayEquals(qOut.toArray(), hOut.toArray())
     }
 }

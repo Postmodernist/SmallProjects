@@ -1,5 +1,6 @@
 package datastructs
 
+import java.util.*
 import kotlin.math.log
 import kotlin.math.sqrt
 
@@ -168,7 +169,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
         var rank: Int = 0               // the number of children
         var mark: Boolean = false       // whether node has lost a child since the last time it was parented
 
-        /** Splice this list with other list. */
+        /** Splice this list with other list. Leaves parent attribute of the list nodes unchanged. */
         fun splice(other: Node<V>) {
             prev.next = other
             other.prev.next = this
@@ -185,6 +186,14 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
 
         /** Removes this node from the list and makes it a singleton list. */
         fun detach() {
+            val p = parent
+            if (p != null && p.child === this) {
+                if (next !== this) {
+                    p.child = next
+                } else {
+                    p.child = null
+                }
+            }
             parent = null
             prev.next = next
             next.prev = prev
@@ -199,13 +208,13 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
          */
         fun parentTo(other: Node<V>) {
             detach()
+            parent = other
             if (other.child != null) {
                 other.child!!.splice(this)
             } else {
                 other.child = this
             }
             other.rank++
-            parent = other
         }
 
         /**
@@ -217,18 +226,21 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
             detach()
         }
 
-        /** Finds a node with given key in this list and down the hierarchy recursively.*/
+        /** Finds a node with given key in this list and down the hierarchy.*/
         fun find(key: V): Node<V>? {
-            var x = this
-            do {
-                if (x.key == key) return x
-                if (key > x.key && x.child != null) {
-                    val c = x.child!!
-                    val y = c.find(key)
-                    if (y != null) return y
-                }
-                x = x.next
-            } while (x !== this)
+            val queue = ArrayDeque<Node<V>>()
+            queue.offer(this)
+            while(!queue.isEmpty()) {
+                val pivot = queue.poll()
+                var x = pivot
+                do { // explore current list
+                    if (x.key == key) return x
+                    if (x.child != null && key > x.key) {
+                        queue.offer(x.child) // enqueue descendants worth exploring
+                    }
+                    x = x.next
+                } while (x !== pivot)
+            }
             return null
         }
     }
