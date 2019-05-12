@@ -96,34 +96,36 @@ class FibonacciHeapTest {
 
     @Test
     fun randomTest() {
-        val h = FibonacciHeap<Int>()
         val q = PriorityQueue<Int>()
-        val hOut = ArrayList<Int>()
         val qOut = ArrayList<Int>()
-        repeat(1000) {
-            val k = R.nextInt()
-            h.insert(k)
+        val h = FibonacciHeap<Int>()
+        val hOut = ArrayList<Int>()
+        repeat(100) {
+            val k = R.nextInt(1000)
             q.offer(k)
+            h.insert(k)
         }
-        repeat(1000) {
+        repeat(100) {
             when (R.nextInt(3)) {
                 0 -> {
-                    val k = R.nextInt()
-                    h.insert(k)
+                    val k = R.nextInt(1000)
                     q.offer(k)
+                    h.insert(k)
+                    assertEquals(q.peek(), h.peek())
                 }
                 1 -> {
-                    val x = h.extract()
-                    if (x != null) hOut.add(x)
-                    val y = q.poll()
-                    if (y != null) qOut.add(y)
+                    val x = q.poll()
+                    if (x != null) qOut.add(x)
+                    val y = h.extract()
+                    if (y != null) hOut.add(y)
+                    assertEquals(x, y)
                 }
                 2 -> {
+                    assertEquals(q.size, h.size)
                     if (q.size > 0) {
                         val i = R.nextInt(q.size)
                         val k = q.toArray()[i] as Int
-                        h.remove(k)
-                        q.remove(k)
+                        assertEquals(q.remove(k), h.remove(k))
                     }
                 }
             }

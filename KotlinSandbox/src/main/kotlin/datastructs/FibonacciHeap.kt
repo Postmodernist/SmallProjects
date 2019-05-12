@@ -23,7 +23,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
         val x = root ?: return null
         if (x.child != null) {
             // Move children to the root list
-            var c: Node<T> = x.child!!
+            var c = x.child!!
             var i = 0
             while (i < x.rank) {
                 c.parent = null
@@ -46,7 +46,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
     private fun consolidate() {
         val n = log(size.toDouble(), phi).toInt() // node rank upper bound
         val ranks = Array<Node<T>?>(n) { null }
-        var r = root!!
+        var r = root!! // root is not necessary min at this point
         var x = r.next
         while (x !== r) {
             val next = x.next
@@ -74,7 +74,8 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
                 x = y
                 y = z
             }
-            y.parentTo(x)
+            y.detach()
+            y.attach(x)
             ranks[i] = null
             i++
         }
@@ -103,8 +104,10 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
      */
     override fun remove(key: T): Boolean {
         val x = root?.find(key) ?: return false
-        decreaseKey(x, root!!.key)
-        root = x
+        if (x !== root) {
+            decreaseKey(x, root!!.key)
+            root = x
+        }
         extract()
         return true
     }
@@ -123,13 +126,13 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
 
     /** Detaches node from its parent and inserts it into root list. */
     private fun cut(node: Node<T>) {
-        node.unparent()
+        node.detach()
         root!!.splice(node)
     }
 
     /** Cuts marked parent nodes until hits first unmarked. Marks that node. */
     private fun cascadingCut(node: Node<T>) {
-        val p = node.parent ?: return
+        val p = node.parent ?: return // do not mark root nodes
         if (node.mark) {
             cut(node)
             cascadingCut(p)
@@ -169,7 +172,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
         var rank: Int = 0               // the number of children
         var mark: Boolean = false       // whether node has lost a child since the last time it was parented
 
-        /** Splice this list with other list. Leaves parent attribute of the list nodes unchanged. */
+        /** Splice this list with other list. Leaves parent/child attributes of nodes unchanged. */
         fun splice(other: Node<V>) {
             prev.next = other
             other.prev.next = this
@@ -187,12 +190,15 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
         /** Removes this node from the list and makes it a singleton list. */
         fun detach() {
             val p = parent
-            if (p != null && p.child === this) {
-                if (next !== this) {
-                    p.child = next
-                } else {
-                    p.child = null
+            if (p != null) {
+                if (p.child === this) {
+                    if (next !== this) {
+                        p.child = next
+                    } else {
+                        p.child = null
+                    }
                 }
+                p.rank--
             }
             parent = null
             prev.next = next
@@ -202,12 +208,8 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
             mark = false
         }
 
-        /**
-         * Makes this node a child of other node. Assumes this node is
-         * in the root list of the heap.
-         */
-        fun parentTo(other: Node<V>) {
-            detach()
+        /** Makes this node a child of other node. Assumes this node is detached. */
+        fun attach(other: Node<V>) {
             parent = other
             if (other.child != null) {
                 other.child!!.splice(this)
@@ -217,20 +219,11 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
             other.rank++
         }
 
-        /**
-         * Detaches this node from its parent, decrementing parent's rank.
-         * Assumes parent exists.
-         */
-        fun unparent() {
-            parent!!.rank--
-            detach()
-        }
-
         /** Finds a node with given key in this list and down the hierarchy.*/
         fun find(key: V): Node<V>? {
             val queue = ArrayDeque<Node<V>>()
             queue.offer(this)
-            while(!queue.isEmpty()) {
+            while (!queue.isEmpty()) {
                 val pivot = queue.poll()
                 var x = pivot
                 do { // explore current list
