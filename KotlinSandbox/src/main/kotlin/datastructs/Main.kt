@@ -69,7 +69,7 @@ private fun makeCommandsQueue(): Array<Command> {
             elements.add(element)
             Insert(element)
         } else {
-            when (if (elements.isEmpty()) 0 else Random.nextInt(2)) {
+            when (if (elements.isEmpty()) 0 else Random.nextInt(3)) {
                 0 -> {
                     val element = Random.nextInt(1_000_000)
                     elements.add(element)

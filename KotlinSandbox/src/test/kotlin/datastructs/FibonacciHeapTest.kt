@@ -95,29 +95,51 @@ class FibonacciHeapTest {
     }
 
     @Test
-    fun randomTest() {
+    fun randomNoRemoves() {
         val q = PriorityQueue<Int>()
-        val qOut = ArrayList<Int>()
         val h = FibonacciHeap<Int>()
-        val hOut = ArrayList<Int>()
-        repeat(100) {
-            val k = R.nextInt(1000)
+        repeat(1000) {
+            val k = R.nextInt()
             q.offer(k)
             h.insert(k)
         }
-        repeat(100) {
-            when (R.nextInt(3)) {
+        repeat(100_000) {
+            when (R.nextInt(2)) {
                 0 -> {
-                    val k = R.nextInt(1000)
+                    val k = R.nextInt()
                     q.offer(k)
                     h.insert(k)
                     assertEquals(q.peek(), h.peek())
                 }
                 1 -> {
                     val x = q.poll()
-                    if (x != null) qOut.add(x)
                     val y = h.extract()
-                    if (y != null) hOut.add(y)
+                    assertEquals(x, y)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun random() {
+        val q = PriorityQueue<Int>()
+        val h = FibonacciHeap<Int>()
+        repeat(1000) {
+            val k = R.nextInt()
+            q.offer(k)
+            h.insert(k)
+        }
+        repeat(100_000) {
+            when (R.nextInt(3)) {
+                0 -> {
+                    val k = R.nextInt()
+                    q.offer(k)
+                    h.insert(k)
+                    assertEquals(q.peek(), h.peek())
+                }
+                1 -> {
+                    val x = q.poll()
+                    val y = h.extract()
                     assertEquals(x, y)
                 }
                 2 -> {
@@ -126,10 +148,10 @@ class FibonacciHeapTest {
                         val i = R.nextInt(q.size)
                         val k = q.toArray()[i] as Int
                         assertEquals(q.remove(k), h.remove(k))
+                        assertEquals(q.peek(), h.peek())
                     }
                 }
             }
         }
-        assertArrayEquals(qOut.toArray(), hOut.toArray())
     }
 }

@@ -54,7 +54,7 @@ class BinaryHeap<T : Comparable<T>> private constructor() : Heap<T> {
      */
     @Suppress("UNCHECKED_CAST")
     override fun remove(key: T): Boolean {
-        val i = heap.indexOf(key)
+        val i = indexOf(key)
         if (i == -1) return false
         val s = --size
         if (s == i) {
@@ -66,6 +66,15 @@ class BinaryHeap<T : Comparable<T>> private constructor() : Heap<T> {
             if (heap[i] == moved) siftUp(i, moved)
         }
         return true
+    }
+
+    private fun indexOf(key: T): Int {
+        var i = 0
+        while (i < heap.size) {
+            if (heap[i] == key) return i
+            i++
+        }
+        return -1
     }
 
     /**

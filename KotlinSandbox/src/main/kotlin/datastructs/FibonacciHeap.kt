@@ -16,6 +16,12 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
     /** Golden ratio. */
     private val phi: Double = (1 + sqrt(5.0)) / 2.0
 
+    /** Negative infinity. */
+    @Suppress("UNCHECKED_CAST")
+    private val negInf: T = object : Comparable<T> {
+        override fun compareTo(other: T): Int = -1
+    } as T
+
     override fun peek(): T? = root?.key
 
     /** Removes the root element from this heap. */
@@ -44,7 +50,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
     }
 
     private fun consolidate() {
-        val n = log(size.toDouble(), phi).toInt() // node rank upper bound
+        val n = log(size.toDouble(), phi).toInt() + 1 // node rank upper bound
         val ranks = Array<Node<T>?>(n) { null }
         var r = root!! // root is not necessary min at this point
         var x = r.next
@@ -104,10 +110,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
      */
     override fun remove(key: T): Boolean {
         val x = root?.find(key) ?: return false
-        if (x !== root) {
-            decreaseKey(x, root!!.key)
-            root = x
-        }
+        if (x !== root) decreaseKey(x, negInf)
         extract()
         return true
     }
