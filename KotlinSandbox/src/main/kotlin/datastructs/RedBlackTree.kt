@@ -47,8 +47,8 @@ class RedBlackTree<T : Comparable<T>> {
         y.parent = p
         when {
             p == null -> root = y
-            x === p.left -> p.left = y
-            else -> p.right = y
+            x === p.right -> p.right = y
+            else -> p.left = y
         }
         y.right = x
         x.parent = y
@@ -82,7 +82,7 @@ class RedBlackTree<T : Comparable<T>> {
         // If x is not a root, then it has a parent.
         while (x != root && x.parent!!.color == RED) {
             // The only property violated at this point is 4, because both x and its parent are red.
-            val p: Node<T> = x.parent!!
+            var p: Node<T> = x.parent!!
             if (p === p.parent?.left) {
                 // Since x.parent is red, it's not a root (root is black), and thus it has a parent.
                 val pp: Node<T> = p.parent!! // pp starts black
@@ -98,6 +98,7 @@ class RedBlackTree<T : Comparable<T>> {
                         // Case 2: rotate left immediately to transform the situation to Case 3
                         x = p // x is red yet again
                         rotateLeft(x)
+                        p = x.parent!!
                     }
                     // Case 3: some color changes and right rotation
                     p.color = BLACK
@@ -108,8 +109,8 @@ class RedBlackTree<T : Comparable<T>> {
             } else {
                 // This branch is symmetrical to the first branch.
                 val pp: Node<T> = p.parent!!
-                y = pp.left
-                if (y?.color == RED) {
+                y = pp.left!!
+                if (y.color == RED) {
                     p.color = BLACK
                     y.color = BLACK
                     pp.color = RED
@@ -118,6 +119,7 @@ class RedBlackTree<T : Comparable<T>> {
                     if (x === p.left) {
                         x = p
                         rotateRight(x)
+                        p = x.parent!!
                     }
                     p.color = BLACK
                     pp.color = RED
@@ -141,13 +143,19 @@ class RedBlackTree<T : Comparable<T>> {
         fun showTree(): String {
             val sb = StringBuilder()
             val stack = ArrayDeque<Pair<Int, Node<V>>>()
+            val explored = HashSet<Node<V>>()
             stack.push(Pair(0, this))
             while (!stack.isEmpty()) {
                 val (t, x) = stack.pop()
-                repeat(t) { sb.append("  ") }
-                sb.append("${x.key}-${if (x.color) "B" else "R"}\n")
-                if (x.left != null) stack.push(Pair(t + 1, x.left!!))
-                if (x.right != null) stack.push(Pair(t + 1, x.right!!))
+                if (x in explored) {
+                    repeat(t) { sb.append("  ") }
+                    sb.append("${x.key}-${if (x.color) "B" else "R"}\n")
+                } else {
+                    if (x.left != null) stack.push(Pair(t + 1, x.left!!))
+                    stack.push(Pair(t, x))
+                    if (x.right != null) stack.push(Pair(t + 1, x.right!!))
+                    explored.add(x)
+                }
             }
             return sb.toString()
         }
