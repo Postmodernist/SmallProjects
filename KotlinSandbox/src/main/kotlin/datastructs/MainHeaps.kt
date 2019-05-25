@@ -1,6 +1,6 @@
 package datastructs
 
-import datastructs.Command.*
+import datastructs.HeapCommand.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -61,7 +61,7 @@ fun main() {
     }
 }
 
-private fun makeCommandsQueue(): Array<Command> {
+private fun makeCommandsQueue(): Array<HeapCommand> {
     val elements = ArrayList<Int>()
     return Array(1_000_000) { i ->
         if (i < 1000) {
@@ -92,8 +92,8 @@ private fun makeCommandsQueue(): Array<Command> {
     }
 }
 
-sealed class Command {
-    data class Insert(val element: Int) : Command()
-    object Extract : Command()
-    data class Remove(val element: Int) : Command()
+sealed class HeapCommand {
+    data class Insert(val element: Int) : HeapCommand()
+    data class Remove(val element: Int) : HeapCommand()
+    object Extract : HeapCommand()
 }
