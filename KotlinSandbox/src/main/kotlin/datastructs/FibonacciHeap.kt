@@ -105,8 +105,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
     }
 
     /**
-     * Removes a single instance of the specified key from this heap,
-     * if it is present.
+     * Removes a single instance of the specified key from this heap if it is present.
      */
     override fun remove(key: T): Boolean {
         val x = root?.find(key) ?: return false
@@ -167,6 +166,7 @@ class FibonacciHeap<T : Comparable<T>> : Heap<T> {
         other.size = 0
     }
 
+    /** Fibonacci heap node. */
     private data class Node<V : Comparable<V>>(var key: V) {
         var parent: Node<V>? = null     // parent node
         var child: Node<V>? = null      // any node in child list

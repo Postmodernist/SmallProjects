@@ -13,15 +13,19 @@ import java.util.*
  */
 class RedBlackTree<T : Comparable<T>> {
 
+    /** The number of nodes in the tree. */
     var size: Int = 0
         private set
 
+    /** Root node of the tree. */
     private var root: Node<T>? = null
 
+    /** Inserts the key to the tree. */
     fun insert(key: T) {
         insert(Node(key))
     }
 
+    /** Removes the key from the tree if present. */
     fun remove(key: T) {
         var x: Node<T>? = root
         while (x != null && x.key != key) {
@@ -30,6 +34,7 @@ class RedBlackTree<T : Comparable<T>> {
         if (x != null) remove(x)
     }
 
+    /** Rotates subtree rooted at the node to the left. */
     private fun rotateLeft(x: Node<T>?) {
         if (x?.right == null) return
         val y = x.right!!
@@ -46,6 +51,7 @@ class RedBlackTree<T : Comparable<T>> {
         x.parent = y
     }
 
+    /** Rotates subtree rooted at the node to the right. */
     private fun rotateRight(x: Node<T>?) {
         if (x?.left == null) return
         val y = x.left!!
@@ -62,6 +68,7 @@ class RedBlackTree<T : Comparable<T>> {
         x.parent = y
     }
 
+    /** Inserts the node to the tree. */
     private fun insert(z: Node<T>) {
         var x: Node<T>? = root
         var y: Node<T>? = null
@@ -83,6 +90,7 @@ class RedBlackTree<T : Comparable<T>> {
         fixAfterInsertion(z)
     }
 
+    /** Restores red-black invariant after node insertion. */
     private fun fixAfterInsertion(node: Node<T>) {
         var x: Node<T> = node // x is red
         // If x is a root, then the only violated property is 2, and we just make the root black.
@@ -136,6 +144,7 @@ class RedBlackTree<T : Comparable<T>> {
         root!!.color = BLACK // the tree is not empty at this point
     }
 
+    /** Removes the node from the tree. */
     private fun remove(z: Node<T>) {
         size--
         if (size == 0) { // removed the last node
@@ -170,6 +179,7 @@ class RedBlackTree<T : Comparable<T>> {
         }
     }
 
+    /** Substitutes one node with another in the tree, discards subtree rooted at the former. */
     private fun transplant(x: Node<T>, y: Node<T>?) {
         // Attach y to x.parent
         val p = x.parent
@@ -185,6 +195,7 @@ class RedBlackTree<T : Comparable<T>> {
         x.right = null
     }
 
+    /** Restores red-black invariant after node deletion. */
     private fun fixAfterDeletion(node: Node<T>?) {
         var x: Node<T> = node ?: return
         while (x !== root && x.color == BLACK) {
@@ -265,18 +276,21 @@ class RedBlackTree<T : Comparable<T>> {
         return a
     }
 
+    /** Red-black tree node. */
     private data class Node<V : Comparable<V>>(var key: V) {
         var parent: Node<V>? = null
         var left: Node<V>? = null
         var right: Node<V>? = null
         var color: Boolean = BLACK
 
+        /** Finds a successor of this node, or null. */
         fun successor(): Node<V>? {
             var x = right ?: return null
             while (x.left != null) x = x.left!!
             return x
         }
 
+        /** Detaches this node from its parent. */
         fun detach() {
             if (parent == null) return
             if (this === parent!!.left) {
@@ -287,6 +301,7 @@ class RedBlackTree<T : Comparable<T>> {
             parent = null
         }
 
+        /** Returns a String representation of a subtree rooted at this node. */
         fun showTree(): String {
             val sb = StringBuilder()
             val stack = ArrayDeque<Pair<Int, Node<V>>>()
