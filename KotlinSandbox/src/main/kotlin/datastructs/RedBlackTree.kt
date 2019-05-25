@@ -85,7 +85,6 @@ class RedBlackTree<T : Comparable<T>> {
 
     private fun fixAfterInsertion(node: Node<T>) {
         var x: Node<T> = node // x is red
-        var y: Node<T>?
         // If x is a root, then the only violated property is 2, and we just make the root black.
         // If x is not a root, then it has a parent.
         while (x !== root && colorOf(x.parent) == RED) {
@@ -94,7 +93,7 @@ class RedBlackTree<T : Comparable<T>> {
             if (p === p.parent?.left) {
                 // (x.parent.color == RED) -> (x.parent !== root) -> (x.parent.parent != null)
                 val pp: Node<T> = p.parent!! // pp starts black
-                y = pp.right
+                val y = pp.right
                 if (colorOf(y) == RED) {
                     // Case 1: no matter if x is right or left child we do the same transformation
                     p.color = BLACK
@@ -116,7 +115,7 @@ class RedBlackTree<T : Comparable<T>> {
                 }
             } else { // symmetrical
                 val pp: Node<T> = p.parent!!
-                y = pp.left
+                val y = pp.left
                 if (colorOf(y) == RED) {
                     p.color = BLACK
                     y?.color = BLACK
