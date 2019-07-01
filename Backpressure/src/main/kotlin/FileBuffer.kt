@@ -1,5 +1,6 @@
 import datastructures.RingBuffer
 import kotlinx.coroutines.*
+import java.io.File
 
 class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (String) -> Unit) {
     companion object {
@@ -8,7 +9,7 @@ class FileBuffer(bufferCapacity: Int = 25, private val sendCallback: suspend (St
         private const val sendThreshold = 5
     }
 
-    private val buffer = RingBuffer(capacity = bufferCapacity)
+    private val buffer = RingBuffer(File("ringbuffer"), bufferCapacity)
     private var trigger = CompletableDeferred<Boolean>()
 
     init {

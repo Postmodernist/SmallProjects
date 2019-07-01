@@ -1,20 +1,20 @@
 import datastructures.RingBuffer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.io.File
 
-fun main(args: Array<String>) {
+fun main() {
 //    testRingBuffer()
     testLog()
 }
 
 private fun testRingBuffer() {
-    val rb = RingBuffer(capacity = 3)
+    val rb = RingBuffer(File("ringbuffer"), 3)
     rb.add("foo")
     rb.add("bar")
     rb.add("baz")
     rb.add("qux")
     rb.remove()
-    rb.onDestroy()
 }
 
 private fun testLog() {
