@@ -31,7 +31,7 @@ private fun CoroutineScope.launchRefProcessing(
         block: suspend CoroutineContext.() -> Unit
 ): Job {
     val newContext = newCoroutineContext(context) + name
-    val coroutine = object : AbstractCoroutine<Unit>(newContext, true) {
+    val coroutine = object : AbstractCoroutine<Unit>(newContext) {
         override fun onCancelled(cause: Throwable, handled: Boolean) {
             super.onCancelled(cause, handled)
             println("Processing '${coroutineContext[CoroutineName]?.name}' cancelled!")

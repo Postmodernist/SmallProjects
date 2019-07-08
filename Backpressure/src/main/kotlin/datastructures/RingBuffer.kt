@@ -2,6 +2,7 @@ package datastructures
 
 import Log
 import java.io.File
+import java.io.FileDescriptor
 import java.io.RandomAccessFile
 import java.util.*
 import kotlin.experimental.and
@@ -24,7 +25,7 @@ import kotlin.experimental.or
  * index converted to string format.
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
+internal class RingBuffer(val file: File, val capacity: Int = 1000) {
     companion object {
         private const val TAG = "RingBuffer"
         /** File head */
@@ -38,46 +39,34 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
         /** Element: header + global index + string + terminator */
         private const val ELEMENT_SIZE = CONTENT_STRING_SIZE + 2
         /** Offset from the beginning of the file to global index field */
-        private const val GLOBAL_INDEX_POSITION = 8L
+        private const val GLOBAL_INDEX_POSITION = 8L // global persistent index for the next log message
 
         private const val FIRST_FLAG: Byte = 0b10
         private const val VALID_FLAG: Byte = 0b01
     }
 
-    val size get() = sz
+    val size get() = bufferHolder?.size ?: 0
 
     private val fileSize = (FILE_HEADER_SIZE + ELEMENT_SIZE * capacity).toLong()
-    private var buffer: RandomAccessFile = if (validateFile(file)) openFile(file) else newFile(file)
-    private var first = 0  // index of the first element
-    private var last = 0  // index of the last element
-    private var sz = 0  // buffer size
-    private var globalIndex = 0L  // global persistent index for the next log message
-
-    /** Closes the buffer file. */
-    fun onDestroy() {
-        buffer.close()
-    }
+    private var bufferHolder: BufferHolder? = openFile(file)
+    private val globalIndex: Long get() = bufferHolder?.globalIndex ?: 1L
 
     /** Removes all of the elements from the buffer. */
     fun clear() {
-        // Clear headers
-        var cursor = FILE_HEADER_SIZE.toLong()
-        buffer.seek(FILE_HEADER_SIZE.toLong())
-        buffer.writeByte(FIRST_FLAG.toInt())
-        repeat(capacity - 1) {
-            cursor = cursor.incrementCursor()
-            buffer.seek(cursor)
-            buffer.writeByte(0)
-        }
-
-        // Reset state
-        first = 0
-        last = 0
-        sz = 0
+        bufferHolder = newFile(file, globalIndex)
     }
 
     /** Inserts a specified element into the buffer, evicting the head element if the buffer is full. */
     fun add(element: String) {
+        val bufferHolder = getValidBufferHolder() ?: return
+
+        // Do not alter the state until I/O is successful
+        val buffer = bufferHolder.buffer
+        var first = bufferHolder.first
+        var last = bufferHolder.last
+        var sz = bufferHolder.size
+        var globalIndex = bufferHolder.globalIndex
+
         // Prepend the content string with its global index
         val withIndex = "$globalIndex $element"
 
@@ -107,121 +96,186 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
         val index = last
         last = last.nextIndex()
 
-        // Write result to file
-        buffer.seek(index.indexToPosition())
-        if (index == capacity - 1) {
-            // Traverse edge
-            buffer.write(output.sliceArray(0 until output.size - 1))
-            buffer.seek(FILE_HEADER_SIZE.toLong())
-            buffer.writeByte(output[ELEMENT_SIZE].toInt())
-        } else {
-            buffer.write(output)
+        try {
+            // Write result to file
+            buffer.seek(index.indexToPosition())
+            if (index == capacity - 1) {
+                // Traverse edge
+                buffer.write(output.sliceArray(0 until output.size - 1))
+                buffer.seek(FILE_HEADER_SIZE.toLong())
+                buffer.writeByte(output[ELEMENT_SIZE].toInt())
+            } else {
+                buffer.write(output)
+            }
+
+            sz++
+            globalIndex++
+
+            // Persist global index
+            buffer.seek(GLOBAL_INDEX_POSITION)
+            buffer.writeLong(globalIndex)
+
+            this.bufferHolder = BufferHolder(buffer, first, last, sz, globalIndex)
+
+        } catch (th: Throwable) {
+            bufferHolder.buffer.close()
+            this.bufferHolder = null
         }
-
-        sz++
-        globalIndex++
-
-        // Persist global index
-        buffer.seek(GLOBAL_INDEX_POSITION)
-        buffer.writeLong(globalIndex)
     }
 
     /** Adds all of the elements in the specified collection to the buffer. */
     fun addAll(elements: Collection<String>) {
         if (elements.size > capacity) {
-            clear()
-            elements.drop(elements.size - capacity).forEach { add(it) }
+            val n = elements.size - capacity
+            bufferHolder = newFile(file, globalIndex + n) // clear buffer, keep global index
+            elements.drop(n).forEach { add(it) }
         } else {
             elements.forEach { add(it) }
         }
     }
 
     /** Retrieves and removes the head of the buffer. */
-    fun remove(): String {
+    fun remove(): String? {
+        val bufferHolder = getValidBufferHolder() ?: return null
+
+        val buffer = bufferHolder.buffer
+        var first = bufferHolder.first
+        var sz = bufferHolder.size
+
         if (sz == 0) {
             throw NoSuchElementException("Trying to remove from empty buffer")
         }
 
-        val pos = first.indexToPosition()
+        return try {
+            val pos = first.indexToPosition()
 
-        // Update current header
-        buffer.seek(pos)
-        buffer.writeByte(0)
+            // Update current header
+            buffer.seek(pos)
+            buffer.writeByte(0)
 
-        // Read element
-        val input = ByteArray(ELEMENT_SIZE - 1)
-        buffer.read(input)
+            // Read element
+            val input = ByteArray(ELEMENT_SIZE - 1)
+            buffer.read(input)
 
-        // Get string length
-        val zero: Byte = 0
-        var len = 0
-        while (input[len] != zero) {
-            len++
+            // Get string length
+            val zero: Byte = 0
+            var len = 0
+            while (input[len] != zero) {
+                len++
+            }
+
+            // Extract string
+            val element = String(input.sliceArray(0 until len))
+
+            // Update header of the next element
+            val newHeader = (if (sz == 1) 0 else VALID_FLAG) or FIRST_FLAG
+            first = first.nextIndex()
+            buffer.seek(first.indexToPosition())
+            buffer.writeByte(newHeader.toInt())
+
+            // Decrement buffer size
+            sz--
+
+            this.bufferHolder = BufferHolder(buffer, first, bufferHolder.last, sz, bufferHolder.globalIndex)
+            element
+
+        } catch (th: Throwable) {
+            buffer.close()
+            this.bufferHolder = null
+            null
         }
-
-        // Extract string
-        val element = String(input.sliceArray(0 until len))
-
-        // Update header of the next element
-        val newHeader = (if (sz == 1) 0 else VALID_FLAG) or FIRST_FLAG
-        first = first.nextIndex()
-        buffer.seek(first.indexToPosition())
-        buffer.writeByte(newHeader.toInt())
-
-        // Decrement buffer size
-        sz--
-
-        return element
     }
 
     /** Retrieves and removes [n] or all remaining elements of the buffer. */
     fun removeMany(n: Int): List<String> {
+        val bufferHolder = getValidBufferHolder() ?: return listOf()
         val elements = mutableListOf<String>()
-        val k = n.coerceAtMost(sz)
+        val k = n.coerceAtMost(bufferHolder.size)
         repeat(k) {
-            elements.add(remove())
+            remove()?.let { elements.add(it) }
         }
 
         return elements
     }
 
-    private fun validateFile(bufferFile: File): Boolean {
-        if (!bufferFile.exists() || bufferFile.isDirectory) {
-            return false
+    /** Check if file descriptor is valid, and reopen file if BFD. */
+    private fun getValidBufferHolder(): BufferHolder? {
+        if (bufferHolder?.fd?.valid() != true) bufferHolder = openFile(file)
+        return bufferHolder
+    }
+
+    /** Tries to open file, checks if buffer is valid, if not then tries to create a new file. */
+    private fun openFile(file: File): BufferHolder? = try {
+        if (!file.exists() && file.isDirectory) throw IllegalArgumentException("File does not exist or is a directory")
+        val buffer = RandomAccessFile(file, "rwd")
+        try {
+            if (!validateBuffer(buffer)) throw IllegalStateException("Buffer validation failed")
+
+            // Locate first element
+            var first = 0
+            var sz = 0
+            buffer.seek(first.indexToPosition())
+            while (first < capacity && !buffer.readByte().isFirst()) {
+                buffer.seek((++first).indexToPosition())
+            }
+
+            // Locate last element
+            var last = first
+            buffer.seek(last.indexToPosition())
+            if (buffer.readByte().isValid()) {
+                do {
+                    sz++  // count elements number
+                    last = last.nextIndex()
+                    buffer.seek(last.indexToPosition())
+                } while (buffer.readByte().isValid() && last != first)
+            }
+
+            // Read global index
+            buffer.seek(GLOBAL_INDEX_POSITION)
+            val globalIndex = buffer.readLong()
+
+            BufferHolder(buffer, first, last, sz, globalIndex)
+
+        } catch (th: Throwable) {
+            buffer.close()
+            throw th
         }
+    } catch (th: Throwable) {
+        Log.e(TAG, "[openFile] Failed with $th")
+        newFile(file)
+    }
 
-        RandomAccessFile(bufferFile, "r").use { buf ->
-            val errorPrefix = "Buffer validation failed:"
-
-            // Validate file header
+    private fun validateBuffer(buffer: RandomAccessFile): Boolean {
+        val errorPrefix = "Buffer validation failed:"
+        try {
             val headBytes = ByteArray(HEAD.length)
-            buf.read(headBytes)
+            buffer.read(headBytes)
             val head = String(headBytes)
             if (HEAD != head) {
                 Log.w(TAG, "$errorPrefix Invalid header (expected '$HEAD', found '$head')")
                 return false
             }
-            val version = buf.readInt()
+            val version = buffer.readInt()
             if (VERSION != version) {
                 Log.w(TAG, "$errorPrefix Version mismatch (expected $VERSION, found $version)")
                 return false
             }
 
-            globalIndex = buf.readLong()
+            buffer.readLong() // global index
 
-            val elementSize = buf.readInt()
+            val elementSize = buffer.readInt()
             if (ELEMENT_SIZE != elementSize) {
                 Log.w(TAG, "$errorPrefix Wrong element size (expected $ELEMENT_SIZE, found $elementSize)")
                 return false
             }
-            val foundCapacity = buf.readInt()
+            val foundCapacity = buffer.readInt()
             if (capacity != foundCapacity) {
                 Log.w(TAG, "$errorPrefix Wrong capacity (expected $capacity, found $foundCapacity)")
                 return false
             }
 
             // Validate file size
-            val fileSize = bufferFile.length()
+            val fileSize = buffer.length()
             if (this.fileSize != fileSize) {
                 Log.w(TAG, "$errorPrefix Wrong file size (expected ${this.fileSize}, found $fileSize)")
                 return false
@@ -230,8 +284,8 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
             // Validate first element
             var firstElementIndex = -1
             repeat(capacity) {
-                buf.seek(it.indexToPosition())
-                if (buf.readByte().isFirst()) {
+                buffer.seek(it.indexToPosition())
+                if (buffer.readByte().isFirst()) {
                     if (firstElementIndex != -1) {
                         return false
                     }
@@ -246,73 +300,61 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
             var cursor = firstElementIndex.indexToPosition()
             var len: Long = 0
             while (true) {
-                buf.seek(cursor)
+                buffer.seek(cursor)
                 cursor = cursor.incrementCursor()
-                if (buf.readByte().isValid() && cursor.positionToIndex() != firstElementIndex) len++ else break
+                if (buffer.readByte().isValid() && cursor.positionToIndex() != firstElementIndex) len++ else break
             }
             while (cursor.positionToIndex() != firstElementIndex) {
-                buf.seek(cursor)
+                buffer.seek(cursor)
                 cursor = cursor.incrementCursor()
-                if (buf.readByte().isValid()) {
+                if (buffer.readByte().isValid()) {
                     return false
                 }
             }
-        }
 
-        return true
+            return true
+        } catch (th: Throwable) {
+            Log.e(TAG, "[validateBuffer] Failed with $th")
+            return false
+        }
     }
 
-    private fun openFile(bufferFile: File): RandomAccessFile {
-        val buffer = RandomAccessFile(bufferFile, "rwd")
-
-        // Locate first element
-        first = 0
-        buffer.seek(first.indexToPosition())
-        while (first < capacity && !buffer.readByte().isFirst()) {
-            buffer.seek((++first).indexToPosition())
-        }
-
-        // Locate last element
-        last = first
-        buffer.seek(last.indexToPosition())
-        if (buffer.readByte().isValid()) {
-            do {
-                sz++  // count elements number
-                last = last.nextIndex()
-                buffer.seek(last.indexToPosition())
-            } while (buffer.readByte().isValid() && last != first)
-        }
-
-        return buffer
-    }
-
-    private fun newFile(bufferFile: File): RandomAccessFile {
+    private fun newFile(bufferFile: File, globalIndex: Long = 1L): BufferHolder? = try {
         if (bufferFile.exists()) {
             bufferFile.delete()
         }
+
+        bufferFile.createNewFile()
+        bufferFile.setReadable(true, true)
+        bufferFile.setWritable(true, true)
+
         val buffer = RandomAccessFile(bufferFile, "rwd")
 
-        // Allocate space
-        buffer.seek(fileSize - 1)
-        buffer.writeByte(0)
-        buffer.seek(0)
+        try {
+            // Allocate space
+            buffer.seek(fileSize - 1)
+            buffer.writeByte(0)
+            buffer.seek(0)
 
-        // Write header
-        buffer.writeBytes(HEAD)
-        buffer.writeInt(VERSION)
-        buffer.writeLong(globalIndex)
-        buffer.writeInt(ELEMENT_SIZE)
-        buffer.writeInt(capacity)
+            // Write header
+            buffer.writeBytes(HEAD)
+            buffer.writeInt(VERSION)
+            buffer.writeLong(globalIndex) // new file resets global index
+            buffer.writeInt(ELEMENT_SIZE)
+            buffer.writeInt(capacity)
 
-        // Write first element header
-        buffer.seek(FILE_HEADER_SIZE.toLong())
-        buffer.writeByte(FIRST_FLAG.toInt())
+            // Write first element header
+            buffer.seek(FILE_HEADER_SIZE.toLong())
+            buffer.writeByte(FIRST_FLAG.toInt())
 
-        first = 0
-        last = 0
-        buffer.seek(first.indexToPosition())
-
-        return buffer
+            BufferHolder(buffer, 0, 0, 0, globalIndex)
+        } catch (th: Throwable) {
+            buffer.close()
+            throw th
+        }
+    } catch (th: Throwable) {
+        Log.e(TAG, "[newFile] Failed with $th")
+        null
     }
 
     private fun Byte.isFirst() = this and FIRST_FLAG == FIRST_FLAG
@@ -326,4 +368,19 @@ class RingBuffer(file: File = File("ringbuffer"), val capacity: Int = 1000) {
     private fun Long.positionToIndex(): Int = ((this - FILE_HEADER_SIZE) / ELEMENT_SIZE).toInt()
 
     private fun Int.indexToPosition(): Long = (FILE_HEADER_SIZE + (this * ELEMENT_SIZE)).toLong()
+
+    private data class BufferHolder(
+        val buffer: RandomAccessFile,
+        val first: Int,
+        val last: Int,
+        val size: Int,
+        val globalIndex: Long
+    ) {
+        val fd: FileDescriptor?
+            get() = try {
+                buffer.fd
+            } catch (th: Throwable) {
+                null
+            }
+    }
 }

@@ -12,6 +12,7 @@ private sealed class Doable {
 }
 
 // Process coroutines.actor messages
+@ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
 private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
     val children: List<SendChannel<Doable>> = Array(5) { createSpinActor() }.asList()
@@ -29,6 +30,7 @@ private val actor = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0)
     }
 }
 
+@ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
 private fun createSpinActor() = GlobalScope.actor<Doable>(Dispatchers.Default, capacity = 0) {
     consumeEach { doable ->
