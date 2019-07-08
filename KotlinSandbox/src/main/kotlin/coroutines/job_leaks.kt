@@ -31,17 +31,12 @@ private fun CoroutineScope.launchRefProcessing(
         block: suspend CoroutineContext.() -> Unit
 ): Job {
     val newContext = newCoroutineContext(context) + name
-
     val coroutine = object : AbstractCoroutine<Unit>(newContext, true) {
-
-        override val cancelsParent: Boolean get() = true
-
         override fun onCancelled(cause: Throwable, handled: Boolean) {
             super.onCancelled(cause, handled)
             println("Processing '${coroutineContext[CoroutineName]?.name}' cancelled!")
         }
     }
-
     coroutine.start(CoroutineStart.DEFAULT, coroutine, block)
     return coroutine
 }
