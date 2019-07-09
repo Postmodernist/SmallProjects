@@ -51,6 +51,7 @@ private fun spin(value: Int, durationMillis: Int = 10): Int {
     return value
 }
 
+@ExperimentalCoroutinesApi
 @ObsoleteCoroutinesApi
 fun main() = runBlocking {
     val start = System.currentTimeMillis()
