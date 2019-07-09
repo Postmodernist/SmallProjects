@@ -30,10 +30,10 @@ package various
 import java.util.*
 import kotlin.collections.ArrayList
 
-class Merger(private val n: Int) {
+class Merger {
 
     val constraints = ArrayList<Constraint>()
-    private val positions = TreeSet(List(n) { it + 1 })
+    private val positions = TreeSet(List(CONSTRAINT_VARIANTS) { it + 1 })
     private val neighbours = ArrayList<Neighbour>()
 
     fun add(constraint: Constraint) {
@@ -101,15 +101,16 @@ class Merger(private val n: Int) {
     }
 
     fun merge() {
-        while (tryMerge());
+        while (tryMerge()) {
+        }
     }
 
     private fun tryMerge(): Boolean {
         for (c in constraints) {
             if (c.position == 0) {
-                val ps = c.possiblePositions()
-                if (ps.size == 1) {
-                    c.position = ps[0]
+                val pp = c.possiblePositions()
+                if (pp.size == 1) {
+                    c.position = pp[0]
                     add(c)
                     return true
                 }
@@ -150,7 +151,7 @@ class Merger(private val n: Int) {
                 ns += n.first
             }
         }
-        var ps: Set<Int> = HashSet(List(n) { it + 1 })
+        var ps: Set<Int> = HashSet(List(CONSTRAINT_VARIANTS) { it + 1 })
         for (c in constraints) {
             if (c.position != 0 && ns.contains(c)) {
                 val x = setOf(c.position - 1, c.position + 1)
@@ -163,7 +164,7 @@ class Merger(private val n: Int) {
     class Constraint(vararg data: Int) {
 
         val data =
-                if (data.size == CONSTRAINT_SIZE) intArrayOf(*data)
+                if (data.size == CONSTRAINT_TYPES) intArrayOf(*data)
                 else throw IllegalArgumentException("Wrong number of arguments")
 
         var position: Int
@@ -200,7 +201,8 @@ class Merger(private val n: Int) {
     )
 
     companion object {
-        const val CONSTRAINT_SIZE = 6
+        const val CONSTRAINT_TYPES = 6
+        const val CONSTRAINT_VARIANTS = 5
     }
 }
 
@@ -221,7 +223,7 @@ fun Merger.Constraint.show(): String {
 }
 
 fun main() {
-    val merger = Merger(5).apply {
+    val merger = Merger().apply {
         // position, color, nation, pet, drink, cigarettes
         add(Merger.Constraint(0, Colors.RED.ordinal, Nations.ENGLISHMAN.ordinal, 0, 0, 0))
         add(Merger.Constraint(0, 0, Nations.SPANIARD.ordinal, Pets.DOG.ordinal, 0, 0))
