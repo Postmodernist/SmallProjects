@@ -27,6 +27,11 @@ your right.
 
 package various
 
+import various.Cigarettes.*
+import various.Colors.*
+import various.Drinks.*
+import various.Nations.*
+import various.Pets.*
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -206,54 +211,78 @@ class Merger {
     }
 }
 
-enum class Colors { X, RED, GREEN, IVORY, YELLOW, BLUE }
-enum class Nations { X, ENGLISHMAN, SPANIARD, UKRAINIAN, JAPANESE, NORWEGIAN }
-enum class Pets { X, DOG, SNAILS, FOX, HORSE, ZEBRA }
-enum class Drinks { X, COFFEE, TEA, MILK, ORANGE_JUICE, WATER }
-enum class Cigarettes { X, OLD_GOLD, KOOLS, CHESTERFIELDS, LUCKY_STRIKE, PARLIAMENTS }
+enum class Colors {
+    RED, GREEN, IVORY, YELLOW, BLUE;
+
+    operator fun invoke() = ordinal + 1
+}
+
+enum class Nations {
+    ENGLISHMAN, SPANIARD, UKRAINIAN, JAPANESE, NORWEGIAN;
+
+    operator fun invoke() = ordinal + 1
+}
+
+enum class Pets {
+    DOG, SNAILS, FOX, HORSE, ZEBRA;
+
+    operator fun invoke() = ordinal + 1
+}
+
+enum class Drinks {
+    COFFEE, TEA, MILK, ORANGE_JUICE, WATER;
+
+    operator fun invoke() = ordinal + 1
+}
+
+enum class Cigarettes {
+    OLD_GOLD, KOOLS, CHESTERFIELDS, LUCKY_STRIKE, PARLIAMENTS;
+
+    operator fun invoke() = ordinal + 1
+}
 
 fun Merger.Constraint.show(): String {
-    val position = if (data[0] == 0) "X" else data[0].toString()
-    val color = Colors.values()[data[1]]
-    val nation = Nations.values()[data[2]]
-    val pet = Pets.values()[data[3]]
-    val drink = Drinks.values()[data[4]]
-    val cigarettes = Cigarettes.values()[data[5]]
+    val position = if (data[0] == 0) "?" else data[0].toString()
+    val color = if (data[1] == 0) "?" else Colors.values()[data[1] - 1].name
+    val nation = if (data[2] == 0) "?" else Nations.values()[data[2] - 1].name
+    val pet = if (data[3] == 0) "?" else Pets.values()[data[3] - 1].name
+    val drink = if (data[4] == 0) "?" else Drinks.values()[data[4] - 1].name
+    val cigarettes = if (data[5] == 0) "?" else Cigarettes.values()[data[5] - 1].name
     return "[$position, $color, $nation, $pet, $drink, $cigarettes]"
 }
 
 fun main() {
     val merger = Merger().apply {
         // position, color, nation, pet, drink, cigarettes
-        add(Merger.Constraint(0, Colors.RED.ordinal, Nations.ENGLISHMAN.ordinal, 0, 0, 0))
-        add(Merger.Constraint(0, 0, Nations.SPANIARD.ordinal, Pets.DOG.ordinal, 0, 0))
-        add(Merger.Constraint(0, Colors.GREEN.ordinal, 0, 0, Drinks.COFFEE.ordinal, 0))
-        add(Merger.Constraint(0, 0, Nations.UKRAINIAN.ordinal, 0, Drinks.TEA.ordinal, 0))
+        add(Merger.Constraint(0, RED(), ENGLISHMAN(), 0, 0, 0))
+        add(Merger.Constraint(0, 0, SPANIARD(), DOG(), 0, 0))
+        add(Merger.Constraint(0, GREEN(), 0, 0, COFFEE(), 0))
+        add(Merger.Constraint(0, 0, UKRAINIAN(), 0, TEA(), 0))
         add(
-                Merger.Constraint(0, Colors.IVORY.ordinal, 0, 0, 0, 0),
-                Merger.Constraint(0, Colors.GREEN.ordinal, 0, 0, 0, 0),
+                Merger.Constraint(0, IVORY(), 0, 0, 0, 0),
+                Merger.Constraint(0, GREEN(), 0, 0, 0, 0),
                 true
         )
-        add(Merger.Constraint(0, 0, 0, Pets.SNAILS.ordinal, 0, Cigarettes.OLD_GOLD.ordinal))
-        add(Merger.Constraint(0, Colors.YELLOW.ordinal, 0, 0, 0, Cigarettes.KOOLS.ordinal))
-        add(Merger.Constraint(3, 0, 0, 0, Drinks.MILK.ordinal, 0))
-        add(Merger.Constraint(1, 0, Nations.NORWEGIAN.ordinal, 0, 0, 0))
+        add(Merger.Constraint(0, 0, 0, SNAILS(), 0, OLD_GOLD()))
+        add(Merger.Constraint(0, YELLOW(), 0, 0, 0, KOOLS()))
+        add(Merger.Constraint(3, 0, 0, 0, MILK(), 0))
+        add(Merger.Constraint(1, 0, NORWEGIAN(), 0, 0, 0))
         add(
-                Merger.Constraint(0, 0, 0, 0, 0, Cigarettes.CHESTERFIELDS.ordinal),
-                Merger.Constraint(0, 0, 0, Pets.FOX.ordinal, 0, 0)
+                Merger.Constraint(0, 0, 0, 0, 0, CHESTERFIELDS()),
+                Merger.Constraint(0, 0, 0, FOX(), 0, 0)
         )
         add(
-                Merger.Constraint(0, 0, 0, 0, 0, Cigarettes.KOOLS.ordinal),
-                Merger.Constraint(0, 0, 0, Pets.HORSE.ordinal, 0, 0)
+                Merger.Constraint(0, 0, 0, 0, 0, KOOLS()),
+                Merger.Constraint(0, 0, 0, HORSE(), 0, 0)
         )
-        add(Merger.Constraint(0, 0, 0, 0, Drinks.ORANGE_JUICE.ordinal, Cigarettes.LUCKY_STRIKE.ordinal))
-        add(Merger.Constraint(0, 0, Nations.JAPANESE.ordinal, 0, 0, Cigarettes.PARLIAMENTS.ordinal))
+        add(Merger.Constraint(0, 0, 0, 0, ORANGE_JUICE(), LUCKY_STRIKE()))
+        add(Merger.Constraint(0, 0, JAPANESE(), 0, 0, PARLIAMENTS()))
         add(
-                Merger.Constraint(0, 0, Nations.NORWEGIAN.ordinal, 0, 0, 0),
-                Merger.Constraint(0, Colors.BLUE.ordinal, 0, 0, 0, 0)
+                Merger.Constraint(0, 0, NORWEGIAN(), 0, 0, 0),
+                Merger.Constraint(0, BLUE(), 0, 0, 0, 0)
         )
-        add(Merger.Constraint(0, 0, 0, Pets.ZEBRA.ordinal, 0, 0))
-        add(Merger.Constraint(0, 0, 0, 0, Drinks.WATER.ordinal, 0))
+        add(Merger.Constraint(0, 0, 0, ZEBRA(), 0, 0))
+        add(Merger.Constraint(0, 0, 0, 0, WATER(), 0))
     }
 
     merger.merge()
