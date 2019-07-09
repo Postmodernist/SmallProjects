@@ -208,18 +208,18 @@ class Merger {
 
 enum class Colors { X, RED, GREEN, IVORY, YELLOW, BLUE }
 enum class Nations { X, ENGLISHMAN, SPANIARD, UKRAINIAN, JAPANESE, NORWEGIAN }
+enum class Pets { X, DOG, SNAILS, FOX, HORSE, ZEBRA }
 enum class Drinks { X, COFFEE, TEA, MILK, ORANGE_JUICE, WATER }
 enum class Cigarettes { X, OLD_GOLD, KOOLS, CHESTERFIELDS, LUCKY_STRIKE, PARLIAMENTS }
-enum class Pets { X, DOG, SNAILS, FOX, HORSE, ZEBRA }
 
 fun Merger.Constraint.show(): String {
     val position = if (data[0] == 0) "X" else data[0].toString()
     val color = Colors.values()[data[1]]
     val nation = Nations.values()[data[2]]
-    val drink = Drinks.values()[data[3]]
-    val cigarettes = Cigarettes.values()[data[4]]
-    val pet = Pets.values()[data[5]]
-    return "[$position, $color, $nation, $drink, $cigarettes, $pet]"
+    val pet = Pets.values()[data[3]]
+    val drink = Drinks.values()[data[4]]
+    val cigarettes = Cigarettes.values()[data[5]]
+    return "[$position, $color, $nation, $pet, $drink, $cigarettes]"
 }
 
 fun main() {
