@@ -41,7 +41,7 @@ class Merger(private val n: Int) {
         while (!done) {
             done = true
             for (c in constraints) {
-                if (c.same(constraint)) {
+                if (c.intersectionMatches(constraint)) {
                     done = false
                     constraint.merge(c)
                     constraints.remove(c)
@@ -100,7 +100,7 @@ class Merger(private val n: Int) {
         }
     }
 
-    fun mergeConstraints() {
+    fun merge() {
         while (tryMerge());
     }
 
@@ -121,7 +121,7 @@ class Merger(private val n: Int) {
                     var match: Constraint? = null
                     for (b in constraints) {
                         if (b.data[i] == 0) continue
-                        if (a.matches(b) && (a.position == 0 || b.possiblePositions().contains(a.position))) {
+                        if (a.disjoint(b) && (a.position == 0 || b.possiblePositions().contains(a.position))) {
                             if (match != null) {
                                 match = null
                                 break
@@ -178,14 +178,14 @@ class Merger(private val n: Int) {
             }
         }
 
-        fun matches(other: Constraint): Boolean {
+        fun disjoint(other: Constraint): Boolean {
             for (i in data.indices) {
                 if (data[i] != 0 && other.data[i] != 0) return false
             }
             return true
         }
 
-        fun same(other: Constraint): Boolean {
+        fun intersectionMatches(other: Constraint): Boolean {
             for (i in data.indices) {
                 if (data[i] != 0 && data[i] == other.data[i]) return true
             }
@@ -254,7 +254,7 @@ fun main() {
         add(Merger.Constraint(0, 0, 0, 0, Drinks.WATER.ordinal, 0))
     }
 
-    merger.mergeConstraints()
+    merger.merge()
 
     for (c in merger.constraints.sortedBy { it.position }) {
         println(c.show())
