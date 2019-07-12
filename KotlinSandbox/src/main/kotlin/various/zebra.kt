@@ -48,32 +48,11 @@ class Merger {
     fun merge() {
         var done = false
         while (!done) {
-            resolveRules()
             hardMerge()
-            done = softMerge()
+            val a = softMerge()
+            val b = resolveRules()
+            done = !a && !b
         }
-    }
-
-    private fun resolveRules() {
-        println("--- resolve rules")
-        var done = false
-        while (!done) {
-            done = true
-            for (c in constraints) {
-                for (i in c.entries.indices) {
-                    val e = c.entries[i]
-                    if (e is RuleSet) {
-                        val v = c.resolveRuleSet(e, i, constraints)
-                        if (v != null) {
-                            c.entries[i] = v
-                            done = false
-                        }
-                    }
-                }
-                if (!done) break
-            }
-        }
-        println("--- resolve rules finished")
     }
 
     private fun hardMerge() {
@@ -95,7 +74,9 @@ class Merger {
     }
 
     private fun softMerge(): Boolean {
-        for (i in 0 until constraints.lastIndex) {
+        var modified = false
+        var i = 0
+        while (i < constraints.lastIndex) {
             val a = constraints[i]
             var b: Constraint? = null
             for (j in i + 1 until constraints.size) {
@@ -111,14 +92,36 @@ class Merger {
             }
             if (b != null) {
                 a.merge(b, constraints)
-                constraints.remove(a)
                 constraints.remove(b)
                 updateRules(a.id, b.id)
-                add(a)
-                return false
+                modified = true
+            }
+            i++
+        }
+        return modified
+    }
+
+    private fun resolveRules(): Boolean {
+        var modified = false
+        var done = false
+        while (!done) {
+            done = true
+            for (c in constraints) {
+                for (i in c.entries.indices) {
+                    val e = c.entries[i]
+                    if (e is RuleSet) {
+                        val v = c.resolveRuleSet(e, i, constraints)
+                        if (v != null) {
+                            c.entries[i] = v
+                            done = false
+                            modified = true
+                        }
+                    }
+                }
+                if (!done) break
             }
         }
-        return true
+        return modified
     }
 
     private fun updateRules(newId: Int, oldId: Int) {
@@ -208,11 +211,9 @@ class Merger {
                     values = values.subtract(setOf(e.v))
                 }
             }
-            println("initial values: $values")
             for (rule in rules) {
                 values = values.intersect(rule.possibleValues(constraints))
             }
-            println("possible values: $values")
             return values
         }
 
