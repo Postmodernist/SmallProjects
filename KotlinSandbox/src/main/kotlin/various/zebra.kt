@@ -49,13 +49,14 @@ class Merger {
         var done = false
         while (!done) {
             hardMerge()
-            val a = softMerge()
-            val b = resolveRules()
+            val a = resolveRules()
+            val b = softMerge()
             done = !a && !b
         }
     }
 
     private fun hardMerge() {
+        println("--- Hard merge ---\n")
         var i = 0
         var cc = ArrayList(constraints)
         while (i < cc.lastIndex) {
@@ -63,9 +64,7 @@ class Merger {
             for (j in i + 1 until cc.size) {
                 val b = cc[j]
                 if (a.hardMatch(b)) {
-                    a.merge(b, constraints)
-                    constraints.remove(b)
-                    updateRules(a.id, b.id)
+                    merge(a, b)
                 }
             }
             cc = ArrayList(constraints)
@@ -73,14 +72,17 @@ class Merger {
         }
     }
 
+
     private fun softMerge(): Boolean {
+        println("--- Soft merge ---\n")
         var modified = false
         var i = 0
-        while (i < constraints.lastIndex) {
+        while (i < constraints.size) {
             val a = constraints[i]
             var b: Constraint? = null
-            for (j in i + 1 until constraints.size) {
+            for (j in 0 until constraints.size) {
                 val c = constraints[j]
+                if (c === a) continue
                 if (a.softMatch(c, constraints)) {
                     if (b == null) {
                         b = c
@@ -91,9 +93,7 @@ class Merger {
                 }
             }
             if (b != null) {
-                a.merge(b, constraints)
-                constraints.remove(b)
-                updateRules(a.id, b.id)
+                merge(a, b)
                 modified = true
             }
             i++
@@ -101,7 +101,16 @@ class Merger {
         return modified
     }
 
+    private fun merge(a: Constraint, b: Constraint) {
+        println("${a.show()} + ${b.show()}")
+        a.merge(b, constraints)
+        constraints.remove(b)
+        updateRules(a.id, b.id)
+        println("    = ${a.show()}\n")
+    }
+
     private fun resolveRules(): Boolean {
+        println("--- Resolve rules ---\n")
         var modified = false
         var done = false
         while (!done) {
@@ -112,6 +121,7 @@ class Merger {
                     if (e is RuleSet) {
                         val v = c.resolveRuleSet(e, i, constraints)
                         if (v != null) {
+                            println("Resolved entry $i of ${c.show()} to $v\n")
                             c.entries[i] = v
                             done = false
                             modified = true
