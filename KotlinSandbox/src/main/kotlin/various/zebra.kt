@@ -45,18 +45,21 @@ class Merger {
         constraints += a
     }
 
-    fun merge() {
+    fun merge(): Merger {
         var done = false
+        var i = 1
         while (!done) {
+            println("=== Merge cycle ${i++} ===\n")
             hardMerge()
             val a = resolveRules()
             val b = softMerge()
             done = !a && !b
         }
+        return this
     }
 
     private fun hardMerge() {
-        println("--- Hard merge ---\n")
+        println("> Hard merge\n")
         var i = 0
         var cc = ArrayList(constraints)
         while (i < cc.lastIndex) {
@@ -72,9 +75,8 @@ class Merger {
         }
     }
 
-
     private fun softMerge(): Boolean {
-        println("--- Soft merge ---\n")
+        println("> Soft merge\n")
         var modified = false
         var i = 0
         while (i < constraints.size) {
@@ -110,7 +112,7 @@ class Merger {
     }
 
     private fun resolveRules(): Boolean {
-        println("--- Resolve rules ---\n")
+        println("> Resolve rules\n")
         var modified = false
         var done = false
         while (!done) {
@@ -121,7 +123,7 @@ class Merger {
                     if (e is RuleSet) {
                         val v = c.resolveRuleSet(e, i, constraints)
                         if (v != null) {
-                            println("Resolved entry $i of ${c.show()} to $v\n")
+                            println("Entry $i of ${c.show()} = ${v.v}\n")
                             c.entries[i] = v
                             done = false
                             modified = true
@@ -253,7 +255,7 @@ enum class Pets { DOG, SNAILS, FOX, HORSE, ZEBRA }
 enum class Drinks { COFFEE, TEA, MILK, ORANGE_JUICE, WATER }
 enum class Cigarettes { OLD_GOLD, KOOLS, CHESTERFIELDS, LUCKY_STRIKE, PARLIAMENTS }
 
-private fun Constraint.show(): String {
+fun Constraint.show(): String {
     val pos = if (entries[0] is Value) (entries[0] as Value).v.toString() else "?"
     val col = if (entries[1] is Value) Colors.values()[(entries[1] as Value).v].name else "?"
     val nat = if (entries[2] is Value) Nations.values()[(entries[2] as Value).v].name else "?"
@@ -263,9 +265,9 @@ private fun Constraint.show(): String {
     return "[$pos, $col, $nat, $pet, $dri, $cig]"
 }
 
-private val variants: Set<Int> = HashSet(List(5) { it })
+val variants: Set<Int> = HashSet(List(5) { it })
 
-private fun immediatelyRight(c: Constraint): Set<Int> {
+fun imRight(c: Constraint): Set<Int> {
     val p = c.entries[0]
     return if (p is Value) {
         variants.intersect(setOf(p.v + 1))
@@ -274,7 +276,7 @@ private fun immediatelyRight(c: Constraint): Set<Int> {
     }
 }
 
-private fun nextTo(c: Constraint): Set<Int> {
+fun nextTo(c: Constraint): Set<Int> {
     val p = c.entries[0]
     return if (p is Value) {
         variants.intersect(setOf(p.v - 1, p.v + 1))
@@ -283,45 +285,34 @@ private fun nextTo(c: Constraint): Set<Int> {
     }
 }
 
+fun <T : Enum<T>> value(v: T) = Value(v.ordinal)
+
+fun rule(f: (Constraint) -> Set<Int>, id: Int): RuleSet = RuleSet(setOf(Rule(f, id)))
+
 fun main() {
-    var rule: RuleSet
     val merger = Merger().apply {
-        // position, color, nation, pet, drink, cigarettes
-        add(Constraint(100, None, Value(RED.ordinal), Value(ENGLISHMAN.ordinal), None, None, None))
-        add(Constraint(101, None, None, Value(SPANIARD.ordinal), Value(DOG.ordinal), None, None))
-        add(Constraint(102, None, Value(GREEN.ordinal), None, None, Value(COFFEE.ordinal), None))
-        add(Constraint(103, None, None, Value(UKRAINIAN.ordinal), None, Value(TEA.ordinal), None))
-        add(Constraint(104, None, Value(IVORY.ordinal), None, None, None, None))
-        rule = RuleSet(setOf(Rule(::immediatelyRight, 104)))
-        add(Constraint(105, rule, Value(GREEN.ordinal), None, None, None, None))
-        add(Constraint(106, None, None, None, Value(SNAILS.ordinal), None, Value(OLD_GOLD.ordinal)))
-        add(Constraint(107, None, Value(YELLOW.ordinal), None, None, None, Value(KOOLS.ordinal)))
-        add(Constraint(108, Value(3), None, None, None, Value(MILK.ordinal), None))
-        add(Constraint(109, Value(1), None, Value(NORWEGIAN.ordinal), None, None, None))
-        add(Constraint(110, None, None, None, Value(FOX.ordinal), None, None))
-        rule = RuleSet(setOf(Rule(::nextTo, 110)))
-        add(Constraint(111, rule, None, None, None, None, Value(CHESTERFIELDS.ordinal)))
-        add(Constraint(112, None, None, None, Value(HORSE.ordinal), None, None))
-        rule = RuleSet(setOf(Rule(::nextTo, 112)))
-        add(Constraint(113, rule, None, None, None, None, Value(KOOLS.ordinal)))
-        add(Constraint(114, None, None, None, None, Value(ORANGE_JUICE.ordinal), Value(LUCKY_STRIKE.ordinal)))
-        add(Constraint(115, None, None, Value(JAPANESE.ordinal), None, None, Value(PARLIAMENTS.ordinal)))
-        add(Constraint(116, None, Value(BLUE.ordinal), None, None, None, None))
-        rule = RuleSet(setOf(Rule(::nextTo, 116)))
-        add(Constraint(117, rule, None, Value(NORWEGIAN.ordinal), None, None, None))
-        add(Constraint(118, None, None, None, Value(ZEBRA.ordinal), None, None))
-        add(Constraint(119, None, None, None, None, Value(WATER.ordinal), None))
-/*
-        add(Constraint(104, Value(3), Value(RED.ordinal), None, None, None, None))
-        rule = RuleSet(setOf(Rule(::immediatelyRight, 104)))
-        add(Constraint(105, rule, Value(GREEN.ordinal), None, None, None, None))
-        rule = RuleSet(setOf(Rule(::nextTo, 104)))
-        add(Constraint(106, rule, Value(IVORY.ordinal), None, None, None, None))
-*/
-    }
-
-    merger.merge()
-
+        // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
+        add(Constraint(100, None, value(RED), value(ENGLISHMAN), None, None, None))
+        add(Constraint(101, None, None, value(SPANIARD), value(DOG), None, None))
+        add(Constraint(102, None, value(GREEN), None, None, value(COFFEE), None))
+        add(Constraint(103, None, None, value(UKRAINIAN), None, value(TEA), None))
+        add(Constraint(104, None, value(IVORY), None, None, None, None))
+        add(Constraint(105, rule(::imRight, 104), value(GREEN), None, None, None, None))
+        add(Constraint(106, None, None, None, value(SNAILS), None, value(OLD_GOLD)))
+        add(Constraint(107, None, value(YELLOW), None, None, None, value(KOOLS)))
+        add(Constraint(108, Value(3), None, None, None, value(MILK), None))
+        add(Constraint(109, Value(1), None, value(NORWEGIAN), None, None, None))
+        add(Constraint(110, None, None, None, value(FOX), None, None))
+        add(Constraint(111, rule(::nextTo, 110), None, None, None, None, value(CHESTERFIELDS)))
+        add(Constraint(112, None, None, None, value(HORSE), None, None))
+        add(Constraint(113, rule(::nextTo, 112), None, None, None, None, value(KOOLS)))
+        add(Constraint(114, None, None, None, None, value(ORANGE_JUICE), value(LUCKY_STRIKE)))
+        add(Constraint(115, None, None, value(JAPANESE), None, None, value(PARLIAMENTS)))
+        add(Constraint(116, None, value(BLUE), None, None, None, None))
+        add(Constraint(117, rule(::nextTo, 116), None, value(NORWEGIAN), None, None, None))
+        add(Constraint(118, None, None, None, value(ZEBRA), None, None))
+        add(Constraint(119, None, None, None, None, value(WATER), None))
+    }.merge()
     for (c in merger.constraints) {
         println(c.show())
     }
