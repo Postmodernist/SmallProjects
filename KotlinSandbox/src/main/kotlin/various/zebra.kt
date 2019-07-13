@@ -86,18 +86,22 @@ class Merger {
                 val c = constraints[j]
                 if (c === a) continue
                 if (a.softMatch(c, constraints)) {
+                    println("Found match: ${a.show()} and ${c.show()}")
                     if (b == null) {
                         b = c
                     } else {
                         b = null
                         break
                     }
+                } else {
+                    println("No match: ${a.show()} and ${c.show()}")
                 }
             }
-            if (b != null) {
+            if (b != null && a.id < b.id) {
                 merge(a, b)
                 modified = true
             }
+            println()
             i++
         }
         return modified
@@ -108,7 +112,7 @@ class Merger {
         a.merge(b, constraints)
         constraints.remove(b)
         updateRules(a.id, b.id)
-        println("    = ${a.show()}\n")
+        println("    = ${a.show()}")
     }
 
     private fun resolveRules(): Boolean {
@@ -166,18 +170,20 @@ class Merger {
                 when (a) {
                     is Value -> when (b) {
                         is Value -> return false
-                        is RuleSet -> if (a.v !in b.possibleValues(i, constraints)) return false
+                        is RuleSet -> if (a.v !in b.possibleValues(i, constraints, a.v)) return false
                     }
                     is RuleSet -> when (b) {
-                        is Value -> if (b.v !in a.possibleValues(i, constraints)) return false
+                        is Value -> if (b.v !in a.possibleValues(i, constraints, b.v)) return false
                         is RuleSet -> {
-                            val valsA = a.possibleValues(i, constraints)
-                            val valsB = b.possibleValues(i, constraints)
-                            if (valsA.intersect(valsB).isEmpty()) return false
+                            // If one depends on other -- can't merge.
+                            if (id in b.rules.map { it.id } || other.id in a.rules.map { it.id }) return false
+                            // No common values -- can't merge.
+                            val valuesA = a.possibleValues(i, constraints)
+                            val valuesB = b.possibleValues(i, constraints)
+                            if (valuesA.intersect(valuesB).isEmpty()) return false
                         }
                     }
                 }
-                if (entries[i] is Value && other.entries[i] is Value) return false
             }
             return true
         }
@@ -215,16 +221,15 @@ class Merger {
             }
         }
 
-        private fun RuleSet.possibleValues(i: Int, constraints: List<Constraint>): Set<Int> {
-            var values: Set<Int> = HashSet(List(CONSTRAINT_VARIANTS) { it })
-            for (c in constraints) {
-                val e = c.entries[i]
-                if (e is Value) {
-                    values = values.subtract(setOf(e.v))
-                }
-            }
+        private fun RuleSet.possibleValues(
+                i: Int,
+                constraints: List<Constraint>,
+                retainedValue: Int? = null
+        ): Set<Int> {
+            val values: HashSet<Int> = availableValues(i, constraints)
+            if (retainedValue != null) values.add(retainedValue)
             for (rule in rules) {
-                values = values.intersect(rule.possibleValues(constraints))
+                values.retainAll(rule.possibleValues(constraints))
             }
             return values
         }
@@ -232,6 +237,17 @@ class Merger {
         private fun Rule.possibleValues(constraints: List<Constraint>): Set<Int> {
             val c = constraints.find { it.id == id } ?: throw IllegalStateException("Id $id not found")
             return f(c)
+        }
+
+        private fun availableValues(i: Int, constraints: List<Constraint>): HashSet<Int> {
+            val values: HashSet<Int> = HashSet(List(CONSTRAINT_VARIANTS) { it })
+            for (c in constraints) {
+                val e = c.entries[i]
+                if (e is Value) {
+                    values.remove(e.v)
+                }
+            }
+            return values
         }
     }
 
@@ -287,6 +303,8 @@ fun nextTo(c: Constraint): Set<Int> {
 
 fun <T : Enum<T>> value(v: T) = Value(v.ordinal)
 
+fun value(v: Int) = Value(v)
+
 fun rule(f: (Constraint) -> Set<Int>, id: Int): RuleSet = RuleSet(setOf(Rule(f, id)))
 
 fun main() {
@@ -300,8 +318,8 @@ fun main() {
         add(Constraint(105, rule(::imRight, 104), value(GREEN), None, None, None, None))
         add(Constraint(106, None, None, None, value(SNAILS), None, value(OLD_GOLD)))
         add(Constraint(107, None, value(YELLOW), None, None, None, value(KOOLS)))
-        add(Constraint(108, Value(3), None, None, None, value(MILK), None))
-        add(Constraint(109, Value(1), None, value(NORWEGIAN), None, None, None))
+        add(Constraint(108, value(3), None, None, None, value(MILK), None))
+        add(Constraint(109, value(1), None, value(NORWEGIAN), None, None, None))
         add(Constraint(110, None, None, None, value(FOX), None, None))
         add(Constraint(111, rule(::nextTo, 110), None, None, None, None, value(CHESTERFIELDS)))
         add(Constraint(112, None, None, None, value(HORSE), None, None))
