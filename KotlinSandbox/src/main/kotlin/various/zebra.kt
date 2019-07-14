@@ -54,8 +54,8 @@ class Merger {
         val modified = arrayOf(true, true, true)
         while (modified.any { it }) {
             println("=== Merge cycle ${i++} ===\n")
-            modified[0] = resolveRules()
-            modified[1] = hardMerge()
+            modified[0] = hardMerge()
+            modified[1] = resolveRules()
             modified[2] = softMerge()
         }
         return this
@@ -150,9 +150,10 @@ class Merger {
                 for (i in c.entries.indices) {
                     val e = c.entries[i]
                     if (e is RuleSet) {
+                        println("Resolve entry $i of ${c.show()}")
                         val v = c.resolveRuleSet(e, i, constraints)
                         if (v != null) {
-                            println("Entry $i of ${c.show()} = ${v.v}\n")
+                            println("Entry $i of ${c.show()} = ${v.v}")
                             c.entries[i] = v
                             done = false
                             modified = true
@@ -162,6 +163,7 @@ class Merger {
                 if (!done) break
             }
         }
+        println()
         return modified
     }
 
@@ -185,7 +187,11 @@ class Merger {
 
         fun resolveRuleSet(e: RuleSet, i: Int, constraints: List<Constraint>): Value? {
             val values = e.possibleValues(i, constraints)
-            return if (values.size == 1) Value(values.first()) else null
+            return when(values.size) {
+                0 -> throw IllegalStateException("Constraints can't be satisfied")
+                1 -> Value(values.first())
+                else -> null
+            }
         }
 
         fun softMatch(other: Constraint, constraints: List<Constraint>): Boolean {
@@ -239,9 +245,9 @@ class Merger {
         private fun RuleSet.merge(other: RuleSet, i: Int, constraints: List<Constraint>): Entry {
             rules.addAll(other.rules)
             val result = possibleValues(i, constraints)
-            return when {
-                result.isEmpty() -> throw IllegalStateException("Constraints can't be satisfied")
-                result.size == 1 -> Value(result.first())
+            return when(result.size) {
+                0 -> throw IllegalStateException("Constraints can't be satisfied")
+                1 -> Value(result.first())
                 else -> this
             }
         }
@@ -332,7 +338,7 @@ object Relations {
         return if (p is Value) {
             variants.intersect(setOf(p.v - 1))
         } else {
-            variants.subtract(setOf(0))
+            variants.subtract(setOf(4))
         }
     }
 
@@ -363,8 +369,8 @@ fun main() {
         add(Constraint(105, rule(imRight, 104), value(GREEN), None, None, None, None))
         add(Constraint(106, None, None, None, value(SNAILS), None, value(OLD_GOLD)))
         add(Constraint(107, None, value(YELLOW), None, None, None, value(KOOLS)))
-        add(Constraint(108, value(3), None, None, None, value(MILK), None))
-        add(Constraint(109, value(1), None, value(NORWEGIAN), None, None, None))
+        add(Constraint(108, value(2), None, None, None, value(MILK), None))
+        add(Constraint(109, value(0), None, value(NORWEGIAN), None, None, None))
         add(Constraint(110, None, None, None, value(FOX), None, None))
         add(Constraint(111, rule(nextTo, 110), None, None, None, None, value(CHESTERFIELDS)))
         add(Constraint(112, None, None, None, value(HORSE), None, None))

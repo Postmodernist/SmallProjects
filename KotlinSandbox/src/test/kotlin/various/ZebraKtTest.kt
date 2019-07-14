@@ -3,13 +3,13 @@ package various
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import various.Colors.*
-import various.Drinks.WATER
+import various.Cigarettes.*
+import various.Drinks.*
 import various.Merger.Constraint
 import various.Merger.Entry.None
 import various.Merger.Entry.Value
 import various.Nations.*
-import various.Pets.DOG
-import various.Pets.SNAILS
+import various.Pets.*
 import various.Relations.imRight
 import various.Relations.nextTo
 
@@ -87,6 +87,26 @@ class ZebraKtTest {
         expected(
                 arrayOf(2, RED.ordinal, ENGLISHMAN.ordinal, -1, -1, -1),
                 arrayOf(-1, BLUE.ordinal, -1, -1, WATER.ordinal, -1)
+        )
+    }
+
+    @Test
+    fun testRules06() = makeTest {
+        // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
+        constraints(
+                Constraint(100, None, value(IVORY), None, None, None, None),
+                Constraint(101, rule(imRight, 100), value(GREEN), None, None, None, None),
+                Constraint(102, Value(2), value(RED), None, None, value(MILK), None),
+                Constraint(103, Value(0), None, value(NORWEGIAN), None, None, None),
+                Constraint(104, None, value(BLUE), None, None, None, None),
+                Constraint(105, rule(nextTo, 104), None, value(NORWEGIAN), None, None, None)
+        )
+        expected(
+                arrayOf(3, IVORY.ordinal, -1, -1, -1, -1),
+                arrayOf(4, GREEN.ordinal, -1, -1, -1, -1),
+                arrayOf(2, RED.ordinal, -1, -1, MILK.ordinal, -1),
+                arrayOf(0, -1, NORWEGIAN.ordinal, -1, -1, -1),
+                arrayOf(1, BLUE.ordinal, -1, -1, -1, -1)
         )
     }
 
