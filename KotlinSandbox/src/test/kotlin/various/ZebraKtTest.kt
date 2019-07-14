@@ -10,6 +10,8 @@ import various.Merger.Entry.Value
 import various.Nations.*
 import various.Pets.DOG
 import various.Pets.SNAILS
+import various.Relations.imRight
+import various.Relations.nextTo
 
 class ZebraKtTest {
 
@@ -18,8 +20,8 @@ class ZebraKtTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(3), value(RED), None, None, None, None),
-                Constraint(101, rule(::imRight, 100), value(GREEN), None, None, None, None),
-                Constraint(102, rule(::nextTo, 100), value(IVORY), None, None, None, None)
+                Constraint(101, rule(imRight, 100), value(GREEN), None, None, None, None),
+                Constraint(102, rule(nextTo, 100), value(IVORY), None, None, None, None)
         )
         expected(
                 arrayOf(3, RED.ordinal, -1, -1, -1, -1),
@@ -33,7 +35,7 @@ class ZebraKtTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(3), value(RED), None, value(DOG), None, None),
-                Constraint(101, rule(::imRight, 100), value(GREEN), None, None, None, None),
+                Constraint(101, rule(imRight, 100), value(GREEN), None, None, None, None),
                 Constraint(102, None, None, None, value(SNAILS), value(WATER), None)
         )
         expected(
@@ -47,8 +49,8 @@ class ZebraKtTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
-                Constraint(101, rule(::imRight, 100), None, value(ENGLISHMAN), None, None, None),
-                Constraint(102, rule(::nextTo, 101), None, value(JAPANESE), None, value(WATER), None)
+                Constraint(101, rule(imRight, 100), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, rule(nextTo, 101), None, value(JAPANESE), None, value(WATER), None)
         )
         expected(
                 arrayOf(2, RED.ordinal, -1, -1, -1, -1),
@@ -62,8 +64,8 @@ class ZebraKtTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
-                Constraint(101, rule(::nextTo, 102), None, value(ENGLISHMAN), None, None, None),
-                Constraint(102, rule(::nextTo, 101), None, None, None, value(WATER), None)
+                Constraint(101, rule(nextTo, 102), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, None, None, None, None, value(WATER), None)
         )
         // Both 101 and 102 match 100, and don't match each other, so no merging.
         expected(
@@ -78,9 +80,10 @@ class ZebraKtTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
-                Constraint(101, rule(::nextTo, 102), None, value(ENGLISHMAN), None, None, None),
-                Constraint(102, rule(::nextTo, 101), value(BLUE), None, None, value(WATER), None)
+                Constraint(101, rule(nextTo, 102), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, None, value(BLUE), None, None, value(WATER), None)
         )
+        // The only match is 100 and 101.
         expected(
                 arrayOf(2, RED.ordinal, ENGLISHMAN.ordinal, -1, -1, -1),
                 arrayOf(-1, BLUE.ordinal, -1, -1, WATER.ordinal, -1)

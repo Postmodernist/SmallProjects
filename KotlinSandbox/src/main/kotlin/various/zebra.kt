@@ -31,10 +31,13 @@ import various.Cigarettes.*
 import various.Colors.*
 import various.Drinks.*
 import various.Merger.Constraint
+import various.Merger.Relation
 import various.Merger.Entry.*
 import various.Merger.Rule
 import various.Nations.*
 import various.Pets.*
+import various.Relations.imRight
+import various.Relations.nextTo
 import java.util.*
 
 class Merger {
@@ -46,20 +49,40 @@ class Merger {
     }
 
     fun merge(): Merger {
-        var done = false
+        addReciprocalRelations()
         var i = 1
-        while (!done) {
+        val modified = arrayOf(true, true, true)
+        while (modified.any { it }) {
             println("=== Merge cycle ${i++} ===\n")
-            hardMerge()
-            val a = resolveRules()
-            val b = softMerge()
-            done = !a && !b
+            modified[0] = resolveRules()
+            modified[1] = hardMerge()
+            modified[2] = softMerge()
         }
         return this
     }
 
-    private fun hardMerge() {
+    private fun addReciprocalRelations() {
+        for (constraint in constraints) {
+            for ((i, entry) in constraint.entries.withIndex()) {
+                if (entry is RuleSet) {
+                    for (rule in entry.rules) {
+                        val reciprocalRelation = Relation(rule.relation.g, rule.relation.f)
+                        val newRule = Rule(reciprocalRelation, constraint.id)
+                        val otherConstraint = constraints.find { it.id == rule.id }
+                                ?: throw IllegalStateException("Id ${rule.id} not found")
+                        when (val otherEntry = otherConstraint.entries[i]) {
+                            is None -> otherConstraint.entries[i] = RuleSet(hashSetOf(newRule))
+                            is RuleSet -> otherEntry.rules.add(newRule)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun hardMerge(): Boolean {
         println("> Hard merge\n")
+        var modified = false
         var i = 0
         var cc = ArrayList(constraints)
         while (i < cc.lastIndex) {
@@ -68,11 +91,13 @@ class Merger {
                 val b = cc[j]
                 if (a.hardMatch(b)) {
                     merge(a, b)
+                    modified = true
                 }
             }
             cc = ArrayList(constraints)
             i++
         }
+        return modified
     }
 
     private fun softMerge(): Boolean {
@@ -112,7 +137,7 @@ class Merger {
         a.merge(b, constraints)
         constraints.remove(b)
         updateRules(a.id, b.id)
-        println("    = ${a.show()}")
+        println("    = ${a.show()}\n")
     }
 
     private fun resolveRules(): Boolean {
@@ -212,12 +237,12 @@ class Merger {
         }
 
         private fun RuleSet.merge(other: RuleSet, i: Int, constraints: List<Constraint>): Entry {
-            val newRuleSet = RuleSet(rules + other.rules)
-            val result = newRuleSet.possibleValues(i, constraints)
+            rules.addAll(other.rules)
+            val result = possibleValues(i, constraints)
             return when {
                 result.isEmpty() -> throw IllegalStateException("Constraints can't be satisfied")
                 result.size == 1 -> Value(result.first())
-                else -> newRuleSet
+                else -> this
             }
         }
 
@@ -236,7 +261,7 @@ class Merger {
 
         private fun Rule.possibleValues(constraints: List<Constraint>): Set<Int> {
             val c = constraints.find { it.id == id } ?: throw IllegalStateException("Id $id not found")
-            return f(c)
+            return relation.f(c)
         }
 
         private fun availableValues(i: Int, constraints: List<Constraint>): HashSet<Int> {
@@ -254,10 +279,15 @@ class Merger {
     sealed class Entry {
         object None : Entry()
         class Value(val v: Int) : Entry()
-        class RuleSet(val rules: Set<Rule>) : Entry()
+        class RuleSet(val rules: HashSet<Rule>) : Entry()
     }
 
-    class Rule(val f: (Constraint) -> Set<Int>, var id: Int)
+    data class Rule(var relation: Relation, var id: Int)
+
+    data class Relation(
+            val f: (Constraint) -> Set<Int>, // relation function
+            val g: (Constraint) -> Set<Int>  // reciprocal of f
+    )
 
     companion object {
         const val CONSTRAINT_TYPES = 6
@@ -281,23 +311,38 @@ fun Constraint.show(): String {
     return "[$pos, $col, $nat, $pet, $dri, $cig]"
 }
 
-val variants: Set<Int> = HashSet(List(5) { it })
+object Relations {
 
-fun imRight(c: Constraint): Set<Int> {
-    val p = c.entries[0]
-    return if (p is Value) {
-        variants.intersect(setOf(p.v + 1))
-    } else {
-        variants.subtract(setOf(0))
+    private val variants: Set<Int> = HashSet(List(5) { it })
+
+    val imRight = Relation(::imRightF, ::imLeftF)
+    val nextTo = Relation(::nextToF, ::nextToF)
+
+    private fun imRightF(c: Constraint): Set<Int> {
+        val p = c.entries[0]
+        return if (p is Value) {
+            variants.intersect(setOf(p.v + 1))
+        } else {
+            variants.subtract(setOf(0))
+        }
     }
-}
 
-fun nextTo(c: Constraint): Set<Int> {
-    val p = c.entries[0]
-    return if (p is Value) {
-        variants.intersect(setOf(p.v - 1, p.v + 1))
-    } else {
-        variants
+    private fun imLeftF(c: Constraint): Set<Int> {
+        val p = c.entries[0]
+        return if (p is Value) {
+            variants.intersect(setOf(p.v - 1))
+        } else {
+            variants.subtract(setOf(0))
+        }
+    }
+
+    private fun nextToF(c: Constraint): Set<Int> {
+        val p = c.entries[0]
+        return if (p is Value) {
+            variants.intersect(setOf(p.v - 1, p.v + 1))
+        } else {
+            variants
+        }
     }
 }
 
@@ -305,7 +350,7 @@ fun <T : Enum<T>> value(v: T) = Value(v.ordinal)
 
 fun value(v: Int) = Value(v)
 
-fun rule(f: (Constraint) -> Set<Int>, id: Int): RuleSet = RuleSet(setOf(Rule(f, id)))
+fun rule(relation: Relation, id: Int): RuleSet = RuleSet(hashSetOf(Rule(relation, id)))
 
 fun main() {
     val merger = Merger().apply {
@@ -315,19 +360,19 @@ fun main() {
         add(Constraint(102, None, value(GREEN), None, None, value(COFFEE), None))
         add(Constraint(103, None, None, value(UKRAINIAN), None, value(TEA), None))
         add(Constraint(104, None, value(IVORY), None, None, None, None))
-        add(Constraint(105, rule(::imRight, 104), value(GREEN), None, None, None, None))
+        add(Constraint(105, rule(imRight, 104), value(GREEN), None, None, None, None))
         add(Constraint(106, None, None, None, value(SNAILS), None, value(OLD_GOLD)))
         add(Constraint(107, None, value(YELLOW), None, None, None, value(KOOLS)))
         add(Constraint(108, value(3), None, None, None, value(MILK), None))
         add(Constraint(109, value(1), None, value(NORWEGIAN), None, None, None))
         add(Constraint(110, None, None, None, value(FOX), None, None))
-        add(Constraint(111, rule(::nextTo, 110), None, None, None, None, value(CHESTERFIELDS)))
+        add(Constraint(111, rule(nextTo, 110), None, None, None, None, value(CHESTERFIELDS)))
         add(Constraint(112, None, None, None, value(HORSE), None, None))
-        add(Constraint(113, rule(::nextTo, 112), None, None, None, None, value(KOOLS)))
+        add(Constraint(113, rule(nextTo, 112), None, None, None, None, value(KOOLS)))
         add(Constraint(114, None, None, None, None, value(ORANGE_JUICE), value(LUCKY_STRIKE)))
         add(Constraint(115, None, None, value(JAPANESE), None, None, value(PARLIAMENTS)))
         add(Constraint(116, None, value(BLUE), None, None, None, None))
-        add(Constraint(117, rule(::nextTo, 116), None, value(NORWEGIAN), None, None, None))
+        add(Constraint(117, rule(nextTo, 116), None, value(NORWEGIAN), None, None, None))
         add(Constraint(118, None, None, None, value(ZEBRA), None, None))
         add(Constraint(119, None, None, None, None, value(WATER), None))
     }.merge()
