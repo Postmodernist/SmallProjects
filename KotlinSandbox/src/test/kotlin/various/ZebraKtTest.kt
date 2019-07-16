@@ -3,11 +3,8 @@ package various
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import various.Colors.*
-import various.Cigarettes.*
 import various.Drinks.*
-import various.Merger.Constraint
-import various.Merger.Entry.None
-import various.Merger.Entry.Value
+import various.Entry.*
 import various.Nations.*
 import various.Pets.*
 import various.Relations.imRight
@@ -112,9 +109,9 @@ class ZebraKtTest {
 
     private fun makeTest(block: TestData.() -> Unit) {
         val testData = TestData().apply { block() }
-        val merger = Merger().apply { testData.constraints.forEach { add(it) } }.merge()
-        merger.constraints.forEach { println(it.show()) }
-        val result = merger.constraints.map {
+        val simplifier = Simplifier().apply { testData.constraints.forEach { add(it) } }.simplify()
+        simplifier.constraints.forEach { println(it.show()) }
+        val result = simplifier.constraints.map {
             it.entries.map { e -> if (e is Value) e.v else -1 }.toTypedArray()
         }.toTypedArray()
         assertArrayEquals(testData.expected, result)
