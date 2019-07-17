@@ -37,7 +37,8 @@ class ZebraKtTest {
         )
         expected(
                 arrayOf(3, RED.ordinal, -1, DOG.ordinal, -1, -1),
-                arrayOf(4, GREEN.ordinal, -1, SNAILS.ordinal, WATER.ordinal, -1)
+                arrayOf(4, GREEN.ordinal, -1, -1, -1, -1),
+                arrayOf(-1, -1, -1, SNAILS.ordinal, WATER.ordinal, -1)
         )
     }
 
@@ -64,7 +65,6 @@ class ZebraKtTest {
                 Constraint(101, rule(nextTo, 102), None, value(ENGLISHMAN), None, None, None),
                 Constraint(102, None, None, None, None, value(WATER), None)
         )
-        // Both 101 and 102 match 100, and don't match each other, so no merging.
         expected(
                 arrayOf(2, RED.ordinal, -1, -1, -1, -1),
                 arrayOf(-1, -1, ENGLISHMAN.ordinal, -1, -1, -1),
@@ -80,9 +80,9 @@ class ZebraKtTest {
                 Constraint(101, rule(nextTo, 102), None, value(ENGLISHMAN), None, None, None),
                 Constraint(102, None, value(BLUE), None, None, value(WATER), None)
         )
-        // The only match is 100 and 101.
         expected(
-                arrayOf(2, RED.ordinal, ENGLISHMAN.ordinal, -1, -1, -1),
+                arrayOf(2, RED.ordinal, -1, -1, -1, -1),
+                arrayOf(-1, -1, ENGLISHMAN.ordinal, -1, -1, -1),
                 arrayOf(-1, BLUE.ordinal, -1, -1, WATER.ordinal, -1)
         )
     }
@@ -104,6 +104,25 @@ class ZebraKtTest {
                 arrayOf(2, RED.ordinal, -1, -1, MILK.ordinal, -1),
                 arrayOf(0, -1, NORWEGIAN.ordinal, -1, -1, -1),
                 arrayOf(1, BLUE.ordinal, -1, -1, -1, -1)
+        )
+    }
+
+    @Test
+    fun testRules07() = makeTest {
+        // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
+        constraints(
+                Constraint(100, None, value(IVORY), None, None, None, None),
+                Constraint(101, rule(imRight, 100), value(GREEN), None, None, None, None),
+                Constraint(102, rule(imRight, 101), value(RED), None, None, None, None),
+                Constraint(103, rule(imRight, 102), None, value(NORWEGIAN), None, None, None),
+                Constraint(104, rule(imRight, 103), None, None, None, value(MILK), None)
+        )
+        expected(
+                arrayOf(0, IVORY.ordinal, -1, -1, -1, -1),
+                arrayOf(1, GREEN.ordinal, -1, -1, -1, -1),
+                arrayOf(2, RED.ordinal, -1, -1, -1, -1),
+                arrayOf(3, -1, NORWEGIAN.ordinal, -1, -1, -1),
+                arrayOf(4, -1, -1, -1, MILK.ordinal, -1)
         )
     }
 

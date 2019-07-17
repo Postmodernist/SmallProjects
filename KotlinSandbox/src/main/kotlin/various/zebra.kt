@@ -40,7 +40,8 @@ import java.util.*
 class Simplifier {
 
     val constraints = ArrayList<Constraint>()
-    private val matcher: Matcher = MatcherImpl()
+    private val evaluator: Evaluator = EvaluatorImpl()
+    private val matcher: Matcher = MatcherImpl(evaluator)
     private val merger: Merger = MergerImpl()
 
     fun add(a: Constraint) {
@@ -54,12 +55,13 @@ class Simplifier {
         var modified = true
         while (modified) {
             println("=== Merge cycle ${i++} ===\n")
+            modified = false
             val match = matcher.findMatch(constraints)
             if (match != null) {
                 val result = merger.merge(match.first, match.second, constraints)
                 constraints.apply {
-                    val id1 = removeAt(match.first).id
                     val id2 = removeAt(match.second).id
+                    val id1 = removeAt(match.first).id
                     updateRules(id1, result.id)
                     updateRules(id2, result.id)
                     add(result)
@@ -75,7 +77,7 @@ class Simplifier {
     }
 
     private fun addReciprocalRelations() {
-        println("> Add reciprocal relations\n")
+        println("> Add reciprocal relations")
         for (constraint in constraints) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is RuleSet) {
@@ -93,6 +95,7 @@ class Simplifier {
                 }
             }
         }
+        println()
     }
 
     private fun updateRules(oldId: Int, newId: Int) {
@@ -104,7 +107,7 @@ class Simplifier {
     }
 
     private fun resolveRules(): Boolean {
-        println("> Resolve rules\n")
+        println("> Resolve rules")
         var modified = false
         loop@ while (true) {
             for (c in constraints) {
@@ -122,12 +125,12 @@ class Simplifier {
     }
 
     private fun Constraint.resolveEntry(i: Int): Boolean {
-        val e = entries[i] as? RuleSet ?: return false
+        if (entries[i] !is RuleSet) return false
         println("Resolve entry $i of ${show()}")
-        val values = e.possibleValues(this, i, constraints)
+        val values = evaluator.possibleValues(this, i, constraints)
         println("Possible values = ${Arrays.toString(values.toIntArray().apply { sort() })}")
         return when (values.size) {
-            0 -> throw IllegalStateException("Constraints can't be satisfied")
+            0 -> throw IllegalStateException("No possible values found")
             1 -> {
                 val v = values.first()
                 entries[i] = Value(v)
@@ -136,6 +139,10 @@ class Simplifier {
             }
             else -> false
         }
+    }
+
+    interface Evaluator {
+        fun possibleValues(parent: Constraint, entryIndex: Int, constraints: List<Constraint>): Set<Int>
     }
 
     interface Matcher {
@@ -147,38 +154,43 @@ class Simplifier {
     }
 }
 
-class MatcherImpl : Simplifier.Matcher {
+class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matcher {
 
     override fun findMatch(constraints: List<Constraint>): Pair<Int, Int>? {
-        println("> Find match\n")
+        println("> Find match")
+        // Find direct matches.
+        for (i in 0 until constraints.lastIndex) {
+            for (j in i + 1 until constraints.size) {
+                if (directMatch(i, j, constraints)) {
+                    println("Found direct match: ${constraints[i].show()} and ${constraints[j].show()}")
+                    println()
+                    return Pair(i, j)
+                }
+            }
+        }
+        // Find indirect matches.
         for (i in constraints.indices) {
             var foundMatch = false
             var jSaved = -1
             loop@ for (j in constraints.indices) {
-                when {
-                    i == j -> continue@loop
-                    directMatch(i, j, constraints) -> {
-                        println("Found direct match: ${constraints[i].show()} and ${constraints[j].show()}")
-                        return Pair(i, j)
-                    }
-                    indirectMatch(i, j, constraints) -> {
-                        println("Found indirect match: ${constraints[i].show()} and ${constraints[j].show()}")
-                        if (!foundMatch) {
-                            jSaved = j
-                            foundMatch = true
-                        } else {
-                            break@loop
-                        }
-                    }
-                    else -> {
-                        println("No match: ${constraints[i].show()} and ${constraints[j].show()}")
-                        continue@loop
+                if (i == j) continue@loop
+                if (indirectMatch(i, j, constraints)) {
+                    println("Found indirect match: ${constraints[i].show()} and ${constraints[j].show()}")
+                    if (!foundMatch) {
+                        jSaved = j
+                        foundMatch = true
+                    } else {
+                        jSaved = -1
+                        break@loop
                     }
                 }
             }
-            if (jSaved != -1) return Pair(i, jSaved)
-            println()
+            if (jSaved != -1) {
+                println()
+                return if (i < jSaved) Pair(i, jSaved) else Pair(jSaved, i)
+            }
         }
+        println()
         return null
     }
 
@@ -201,12 +213,12 @@ class MatcherImpl : Simplifier.Matcher {
             val entryB = b.entries[k]
             when (entryA) {
                 is Value -> when (entryB) {
-                    is Value -> return false
+                    is Value -> return entryA.v == entryB.v
                     is RuleSet -> {
                         // B depends on A
                         if (a.id in entryB.rules.map { it.id }) return false
                         // B can't have value of A
-                        if (entryA.v !in entryB.possibleValues(b, k, constraints)) return false
+                        if (entryA.v !in evaluator.possibleValues(b, k, constraints)) return false
                     }
                 }
                 is RuleSet -> when (entryB) {
@@ -214,14 +226,14 @@ class MatcherImpl : Simplifier.Matcher {
                         // A depends on B
                         if (b.id in entryA.rules.map { it.id }) return false
                         // A can't have value of B
-                        if (entryB.v !in entryA.possibleValues(a, k, constraints)) return false
+                        if (entryB.v !in evaluator.possibleValues(a, k, constraints)) return false
                     }
                     is RuleSet -> {
                         // One depends on the other
                         if (a.id in entryB.rules.map { it.id } || b.id in entryA.rules.map { it.id }) return false
                         // No common values
-                        val valuesA = entryA.possibleValues(a, k, constraints)
-                        val valuesB = entryB.possibleValues(b, k, constraints)
+                        val valuesA = evaluator.possibleValues(a, k, constraints)
+                        val valuesB = evaluator.possibleValues(b, k, constraints)
                         val commonValues = valuesA.intersect(valuesB)
                         if (commonValues.isEmpty()) return false
                     }
@@ -235,7 +247,7 @@ class MatcherImpl : Simplifier.Matcher {
 class MergerImpl : Simplifier.Merger {
 
     override fun merge(i: Int, j: Int, constraints: List<Constraint>): Constraint {
-        println("> Merge\n")
+        println("> Merge")
         val a = constraints[i]
         val b = constraints[j]
         val c = Constraint(a.id, *a.entries)
@@ -250,10 +262,117 @@ class MergerImpl : Simplifier.Merger {
                 }
             }
         }
-        println("${a.show()} + ${b.show()} =")
-        println("    = ${c.show()}\n")
+        println("${a.show()} + ${b.show()} = ${c.show()}")
+        println()
         return c
     }
+}
+
+class EvaluatorImpl : Simplifier.Evaluator {
+
+    override fun possibleValues(
+            parent: Constraint,
+            entryIndex: Int,
+            constraints: List<Constraint>
+    ): Set<Int> {
+        val entry = parent.entries[entryIndex] as? RuleSet
+                ?: throw java.lang.IllegalArgumentException("Entry is not a RuleSet")
+        val values: HashSet<Int> = HashSet(Constraint.defaultVariants)
+        for (rule in entry.rules) {
+            values.retainAll(rule.possibleValues(parent, entryIndex, constraints))
+        }
+        val valuesToRemove = ArrayList<Int>()
+        for (v in values) {
+            val c = constraints.find {
+                val e = it.entries[entryIndex]
+                e is Value && e.v == v
+            }
+            if (c != null && distinct(parent, c, entryIndex, constraints)) {
+                valuesToRemove += v
+            }
+        }
+        values.removeAll(valuesToRemove)
+        if (values.isEmpty()) throw IllegalStateException("No possible values found")
+        return values
+    }
+
+    private fun Rule.possibleValues(
+            parent: Constraint,
+            entryIndex: Int,
+            constraints: List<Constraint>
+    ): Set<Int> {
+        // Constraint referenced by this rule.
+        val c = constraints.find { it.id == id } ?: throw IllegalStateException("Id $id not found")
+        // Set of values to apply relation to.
+        val values: Set<Int> = when (val e = c.entries[entryIndex]) {
+            None -> Constraint.defaultVariants
+            is Value -> setOf(e.v)
+            is RuleSet -> HashSet(Constraint.defaultVariants).apply {
+                for (rule in e.rules) {
+                    if (rule.id == parent.id) {
+                        // Recursive relation, start with set of all variants.
+                        // TODO Apply relations in turns until fixed point is reached.
+                        val acc = HashSet<Int>()
+                        for (i in Constraint.defaultVariants) {
+                            acc.addAll(rule.relation.f(i))
+                        }
+                        retainAll(acc)
+                    } else {
+                        val acc = rule.possibleValues(c, entryIndex, constraints)
+                        retainAll(acc)
+                    }
+                }
+            }
+        }
+        val result = HashSet<Int>()
+        for (i in values) {
+            result.addAll(relation.f(i))
+        }
+        return result
+    }
+
+    private fun distinct(
+            a: Constraint,
+            b: Constraint,
+            entryIndex: Int,
+            constraints: List<Constraint>
+    ): Boolean {
+        for (k in a.entries.indices) {
+            if (k == entryIndex) continue
+            val entryA = a.entries[k]
+            val entryB = b.entries[k]
+            when (entryA) {
+                is Value -> when (entryB) {
+                    is Value -> return entryA.v != entryB.v
+                    is RuleSet -> {
+                        // B depends on A
+                        if (a.id in entryB.rules.map { it.id }) return true
+                        // B can't have value of A
+                        if (entryA.v !in possibleValues(b, k, constraints)) return true
+                    }
+                }
+                is RuleSet -> when (entryB) {
+                    is Value -> {
+                        // A depends on B
+                        if (b.id in entryA.rules.map { it.id }) return true
+                        // A can't have value of B
+                        if (entryB.v !in possibleValues(a, k, constraints)) return true
+                    }
+                    is RuleSet -> {
+                        // One depends on the other
+                        if (a.id in entryB.rules.map { it.id } || b.id in entryA.rules.map { it.id }) return true
+                        // No common values
+                        val valuesA = possibleValues(a, k, constraints)
+                        val valuesB = possibleValues(b, k, constraints)
+                        val commonValues = valuesA.intersect(valuesB)
+                        if (commonValues.isEmpty()) return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
 }
 
 class Constraint(val id: Int, vararg entries: Entry) {
@@ -271,71 +390,9 @@ class Constraint(val id: Int, vararg entries: Entry) {
 }
 
 sealed class Entry {
-
     object None : Entry()
-
     class Value(val v: Int) : Entry()
-
-    class RuleSet(val rules: Set<Rule>) : Entry() {
-
-        fun possibleValues(
-                parent: Constraint,
-                entryIndex: Int,
-                constraints: List<Constraint>
-        ): Set<Int> {
-            val values: HashSet<Int> = HashSet(Constraint.defaultVariants)
-            for (rule in rules) {
-                values.retainAll(rule.possibleValues(parent, entryIndex, constraints))
-            }
-            val valuesToRemove = ArrayList<Int>()
-            for (v in values) {
-                val a = constraints.find {
-                    val e = it.entries[entryIndex]
-                    e is Value && e.v == v
-                }
-                if (a != null && !parent.possibleMatch(a, entryIndex, constraints)) {
-                    valuesToRemove += v
-                }
-            }
-            values.removeAll(valuesToRemove)
-            return values
-        }
-
-        private fun Rule.possibleValues(
-                parent: Constraint,
-                entryIndex: Int,
-                constraints: List<Constraint>
-        ): Set<Int> {
-            // Constraint referenced by this rule.
-            val c = constraints.find { it.id == id } ?: throw IllegalStateException("Id $id not found")
-            // Set of values to apply relation to.
-            val values: Set<Int> = when (val e = c.entries[entryIndex]) {
-                None -> Constraint.defaultVariants
-                is Value -> setOf(e.v)
-                is RuleSet -> HashSet(Constraint.defaultVariants).apply {
-                    for (rule in e.rules) {
-                        if (rule.id == parent.id) {
-                            // Recursive relation, start with set of all variants.
-                            // TODO Apply relations in turns until fixed point is reached.
-                            val acc = HashSet<Int>()
-                            for (i in Constraint.defaultVariants) {
-                                acc.addAll(rule.relation.f(i))
-                            }
-                            retainAll(acc)
-                        } else {
-                            val acc = rule.possibleValues(c, entryIndex, constraints)
-                            retainAll(acc)
-                        }
-                    }
-                }
-            }
-            val result = HashSet<Int>()
-            for (i in values) {
-                result.addAll(relation.f(i))
-            }
-            return result
-        }
-    }
+    class RuleSet(val rules: Set<Rule>) : Entry()
 }
 
 class Rule(var relation: Relation, var id: Int)
