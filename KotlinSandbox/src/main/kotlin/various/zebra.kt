@@ -263,58 +263,74 @@ class EvaluatorImpl : Evaluator {
     ): Set<Int> {
         val entry = parent.entries[entryIndex] as? RuleSet
                 ?: throw java.lang.IllegalArgumentException("Entry is not a RuleSet")
-        val values: HashSet<Int> = HashSet(Constraint.defaultVariants)
-        for (rule in entry.rules) {
-            values.retainAll(rule.possibleValues(parent, entryIndex, constraints))
+        val values = entry.rules.possibleValues(parent, entryIndex, constraints)
+        when (values.size) {
+            0 -> throw IllegalStateException("No possible values found")
+            1 -> return values
         }
-        val valuesToRemove = ArrayList<Int>()
-        for (v in values) {
-            val c = constraints.find {
-                val e = it.entries[entryIndex]
-                e is Value && e.v == v
-            }
-            if (c != null && constraints.distinct(parent, c, entryIndex)) {
-                valuesToRemove += v
-            }
+        val possibleValues = values.filter { v ->
+            isValuePossible(v, parent, entryIndex, constraints)
         }
-        values.removeAll(valuesToRemove)
-        if (values.isEmpty()) throw IllegalStateException("No possible values found")
-        return values
+        if (possibleValues.isEmpty()) throw IllegalStateException("No possible values found")
+        return possibleValues.toSet()
     }
 
-    private fun Rule.possibleValues(
+    private fun Set<Rule>.possibleValues(
+            parent: Constraint,
+            entryIndex: Int,
+            constraints: List<Constraint>,
+            knownValues: HashMap<Int, HashSet<Int>> = HashMap()
+    ): Set<Int> {
+        // Rule references entry at the same position as itself.
+        // Sweep horizontally across constraints resolving values of entries at entryIndex.
+        // Keep found values in the map knownValues.
+        for (rule in this) {
+            rule.evaluate(parent, entryIndex, constraints, knownValues)
+        }
+        return knownValues[parent.id] ?: throw IllegalStateException("Rule evaluation error")
+    }
+
+    private fun Rule.evaluate(
+            parent: Constraint,
+            entryIndex: Int,
+            constraints: List<Constraint>,
+            knownValues: HashMap<Int, HashSet<Int>>
+    ): Set<Int> {
+        // Initialize set of values for parent.
+        if (!knownValues.contains(parent.id)) {
+            knownValues[parent.id] = HashSet(Constraint.defaultVariants)
+        }
+        // Get constraint referenced by this rule.
+        val referenced = constraints.find { it.id == id }
+                ?: throw IllegalStateException("Referenced id = $id not found")
+        // Get set of values of entry at entryIndex of referenced constraint.
+        val referencedValues = knownValues[referenced.id]
+                ?: when (val entry = referenced.entries[entryIndex]) {
+                    None -> Constraint.defaultVariants
+                    is Value -> setOf(entry.v)
+                    is RuleSet ->
+                        entry.rules.possibleValues(referenced, entryIndex, constraints, knownValues)
+                }
+        // Apply this rule's relation to each value of referenced entry and collect results.
+        val ruleValues = HashSet<Int>()
+        for (v in referencedValues) {
+            ruleValues.addAll(relation.f(v))
+        }
+        knownValues[parent.id]?.retainAll(ruleValues)
+        return ruleValues
+    }
+
+    private fun isValuePossible(
+            v: Int,
             parent: Constraint,
             entryIndex: Int,
             constraints: List<Constraint>
-    ): Set<Int> {
-        // Constraint referenced by this rule.
-        val c = constraints.find { it.id == id } ?: throw IllegalStateException("Id $id not found")
-        // Set of values to apply relation to.
-        val values: Set<Int> = when (val e = c.entries[entryIndex]) {
-            None -> Constraint.defaultVariants
-            is Value -> setOf(e.v)
-            is RuleSet -> HashSet(Constraint.defaultVariants).apply {
-                for (rule in e.rules) {
-                    if (rule.id == parent.id) {
-                        // Recursive relation, start with set of all variants.
-                        // TODO Apply relations in turns until fixed point is reached.
-                        val acc = HashSet<Int>()
-                        for (i in Constraint.defaultVariants) {
-                            acc.addAll(rule.relation.f(i))
-                        }
-                        retainAll(acc)
-                    } else {
-                        val acc = rule.possibleValues(c, entryIndex, constraints)
-                        retainAll(acc)
-                    }
-                }
-            }
+    ): Boolean {
+        val c = constraints.find {
+            val e = it.entries[entryIndex]
+            e is Value && e.v == v
         }
-        val result = HashSet<Int>()
-        for (i in values) {
-            result.addAll(relation.f(i))
-        }
-        return result
+        return c == null || !constraints.distinct(parent, c, entryIndex)
     }
 
     private fun List<Constraint>.distinct(
