@@ -48,12 +48,12 @@ class ZebraKtTest {
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
                 Constraint(101, rule(imRight, 100), None, value(ENGLISHMAN), None, None, None),
-                Constraint(102, rule(nextTo, 101), None, value(JAPANESE), None, value(WATER), None)
+                Constraint(102, rule(nextTo, 101), value(GREEN), value(JAPANESE), None, None, None)
         )
         expected(
                 arrayOf(2, RED.ordinal, -1, -1, -1, -1),
                 arrayOf(3, -1, ENGLISHMAN.ordinal, -1, -1, -1),
-                arrayOf(4, -1, JAPANESE.ordinal, -1, WATER.ordinal, -1)
+                arrayOf(4, GREEN.ordinal, JAPANESE.ordinal, -1, -1, -1)
         )
     }
 
@@ -76,14 +76,18 @@ class ZebraKtTest {
     fun testRules05() = makeTest {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
-                Constraint(100, value(2), value(RED), None, None, None, None),
-                Constraint(101, rule(nextTo, 102), None, value(ENGLISHMAN), None, None, None),
-                Constraint(102, None, value(BLUE), None, None, value(WATER), None)
+                Constraint(100, value(2), value(RED), value(SPANIARD), None, None, None),
+                Constraint(101, rule(imRight, 102), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, None, value(BLUE), None, None, value(WATER), None),
+                Constraint(103, value(1), None, value(NORWEGIAN), None, None, None),
+                Constraint(104, value(0), None, None, None, value(COFFEE), None)
         )
         expected(
-                arrayOf(2, RED.ordinal, -1, -1, -1, -1),
-                arrayOf(-1, -1, ENGLISHMAN.ordinal, -1, -1, -1),
-                arrayOf(-1, BLUE.ordinal, -1, -1, WATER.ordinal, -1)
+                arrayOf(2, RED.ordinal, SPANIARD.ordinal, -1, -1, -1),
+                arrayOf(4, -1, ENGLISHMAN.ordinal, -1, -1, -1),
+                arrayOf(3, BLUE.ordinal, -1, -1, WATER.ordinal, -1),
+                arrayOf(1, -1, NORWEGIAN.ordinal, -1, -1, -1),
+                arrayOf(0, -1, -1, -1, COFFEE.ordinal, -1)
         )
     }
 

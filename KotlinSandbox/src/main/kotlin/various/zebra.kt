@@ -40,51 +40,47 @@ import java.util.*
 class Simplifier {
 
     val constraints = ArrayList<Constraint>()
-    private val evaluator: Evaluator = EvaluatorImpl()
-    private val matcher: Matcher = MatcherImpl(evaluator)
-    private val merger: Merger = MergerImpl()
+    private val constraintExtensions = ConstraintsExtensions()
 
     fun add(a: Constraint) {
         constraints += a
     }
 
     fun simplify(): Simplifier {
-        constraints.sortBy { it.id }
-        addReciprocalRelations()
-        var i = 1
-        var modified = true
-        while (modified) {
-            println("=== Merge cycle ${i++} ===\n")
-            modified = false
-            val match = matcher.findMatch(constraints)
-            if (match != null) {
-                val result = merger.merge(match.first, match.second, constraints)
-                constraints.apply {
-                    val id2 = removeAt(match.second).id
-                    val id1 = removeAt(match.first).id
-                    updateRules(id1, result.id)
-                    updateRules(id2, result.id)
-                    add(result)
-                    sortBy { it.id }
+        with(constraintExtensions) {
+            constraints.sortBy { it.id }
+            constraints.addReciprocalRelations()
+            var i = 1
+            var modified = true
+            while (modified) {
+                println("=== Merge cycle ${i++} ===\n")
+                modified = false
+                if (constraints.mergeMatches()) {
+                    modified = true
                 }
-                modified = true
-            }
-            if (resolveRules()) {
-                modified = true
+                if (constraints.resolveRules()) {
+                    modified = true
+                }
             }
         }
         return this
     }
+}
 
-    private fun addReciprocalRelations() {
+class ConstraintsExtensions {
+
+    private val evaluator = EvaluatorImpl()
+    private val matcher = MatcherImpl(evaluator)
+
+    fun ArrayList<Constraint>.addReciprocalRelations() {
         println("> Add reciprocal relations")
-        for (constraint in constraints) {
+        for (constraint in this) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is RuleSet) {
                     for (rule in entry.rules) {
                         val reciprocalRelation = Relation(rule.relation.g, rule.relation.f)
                         val reciprocalRule = Rule(reciprocalRelation, constraint.id)
-                        val otherConstraint = constraints.find { it.id == rule.id }
+                        val otherConstraint = find { it.id == rule.id }
                                 ?: throw IllegalStateException("Id ${rule.id} not found")
                         otherConstraint.entries[i] = when (val otherEntry = otherConstraint.entries[i]) {
                             is None -> RuleSet(hashSetOf(reciprocalRule))
@@ -98,21 +94,52 @@ class Simplifier {
         println()
     }
 
-    private fun updateRules(oldId: Int, newId: Int) {
-        for (c in constraints) {
+    fun ArrayList<Constraint>.mergeMatches(): Boolean {
+        println("> Merge matches")
+        var modified = false
+        while (true) {
+            val match = matcher.findMatch(this) ?: break
+            merge(match.first, match.second)
+            modified = true
+        }
+        return modified
+    }
+
+    private fun ArrayList<Constraint>.merge(i: Int, j: Int) {
+        val a = get(i)
+        val b = get(j)
+        print("${a.show()} + ${b.show()} = ")
+        for (k in a.entries.indices) {
+            a.entries[k] = when (val entry = a.entries[k]) {
+                is None -> b.entries[k]
+                is Value -> entry
+                is RuleSet -> when (val otherEntry = b.entries[k]) {
+                    is None -> entry
+                    is Value -> otherEntry
+                    is RuleSet -> RuleSet(entry.rules.union(otherEntry.rules))
+                }
+            }
+        }
+        println(a.show())
+        removeAt(j)
+        updateRules(b.id, a.id)
+    }
+
+    private fun ArrayList<Constraint>.updateRules(oldId: Int, newId: Int) {
+        for (c in this) {
             for (e in c.entries) {
                 if (e is RuleSet) e.rules.forEach { if (it.id == oldId) it.id = newId }
             }
         }
     }
 
-    private fun resolveRules(): Boolean {
+    fun ArrayList<Constraint>.resolveRules(): Boolean {
         println("> Resolve rules")
         var modified = false
         loop@ while (true) {
-            for (c in constraints) {
+            for (c in this) {
                 for (i in c.entries.indices) {
-                    if (c.resolveEntry(i)) {
+                    if (resolveEntry(c, i)) {
                         modified = true
                         continue@loop
                     }
@@ -124,57 +151,51 @@ class Simplifier {
         return modified
     }
 
-    private fun Constraint.resolveEntry(i: Int): Boolean {
-        if (entries[i] !is RuleSet) return false
-        println("Resolve entry $i of ${show()}")
-        val values = evaluator.possibleValues(this, i, constraints)
+    private fun ArrayList<Constraint>.resolveEntry(c: Constraint, i: Int): Boolean {
+        if (c.entries[i] !is RuleSet) return false
+        println("Resolve entry $i of ${c.show()}")
+        val values = evaluator.possibleValues(c, i, this)
         println("Possible values = ${Arrays.toString(values.toIntArray().apply { sort() })}")
-        return when (values.size) {
-            0 -> throw IllegalStateException("No possible values found")
-            1 -> {
-                val v = values.first()
-                entries[i] = Value(v)
-                println("Entry $i of ${show()} = $v")
-                true
-            }
-            else -> false
+        return if (values.size != 1) false else {
+            val v = values.first()
+            c.entries[i] = Value(v)
+            true
         }
-    }
-
-    interface Evaluator {
-        fun possibleValues(parent: Constraint, entryIndex: Int, constraints: List<Constraint>): Set<Int>
-    }
-
-    interface Matcher {
-        fun findMatch(constraints: List<Constraint>): Pair<Int, Int>?
-    }
-
-    interface Merger {
-        fun merge(i: Int, j: Int, constraints: List<Constraint>): Constraint
     }
 }
 
-class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matcher {
+class MatcherImpl(private val evaluator: Evaluator) : Matcher {
 
     override fun findMatch(constraints: List<Constraint>): Pair<Int, Int>? {
-        println("> Find match")
-        // Find direct matches.
         for (i in 0 until constraints.lastIndex) {
             for (j in i + 1 until constraints.size) {
-                if (directMatch(i, j, constraints)) {
-                    println("Found direct match: ${constraints[i].show()} and ${constraints[j].show()}")
-                    println()
+                if (constraints.match(i, j)) {
+                    println("Found match: ${constraints[i].show()} and ${constraints[j].show()}")
                     return Pair(i, j)
                 }
             }
         }
-        // Find indirect matches.
+        return null
+    }
+
+    private fun List<Constraint>.match(i: Int, j: Int): Boolean {
+        val a = get(i)
+        val b = get(j)
+        for (k in a.entries.indices) {
+            val entryA = a.entries[k]
+            val entryB = b.entries[k]
+            if (entryA is Value && entryB is Value && entryA.v == entryB.v) return true
+        }
+        return false
+    }
+
+    fun findIndirectMatch(constraints: List<Constraint>): Pair<Int, Int>? {
         for (i in constraints.indices) {
             var foundMatch = false
             var jSaved = -1
             loop@ for (j in constraints.indices) {
                 if (i == j) continue@loop
-                if (indirectMatch(i, j, constraints)) {
+                if (constraints.indirectMatch(i, j)) {
                     println("Found indirect match: ${constraints[i].show()} and ${constraints[j].show()}")
                     if (!foundMatch) {
                         jSaved = j
@@ -194,20 +215,9 @@ class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matc
         return null
     }
 
-    private fun directMatch(i: Int, j: Int, constraints: List<Constraint>): Boolean {
-        val a = constraints[i]
-        val b = constraints[j]
-        for (k in a.entries.indices) {
-            val entryA = a.entries[k]
-            val entryB = b.entries[k]
-            if (entryA is Value && entryB is Value && entryA.v == entryB.v) return true
-        }
-        return false
-    }
-
-    private fun indirectMatch(i: Int, j: Int, constraints: List<Constraint>): Boolean {
-        val a = constraints[i]
-        val b = constraints[j]
+    private fun List<Constraint>.indirectMatch(i: Int, j: Int): Boolean {
+        val a = get(i)
+        val b = get(j)
         for (k in a.entries.indices) {
             val entryA = a.entries[k]
             val entryB = b.entries[k]
@@ -218,7 +228,7 @@ class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matc
                         // B depends on A
                         if (a.id in entryB.rules.map { it.id }) return false
                         // B can't have value of A
-                        if (entryA.v !in evaluator.possibleValues(b, k, constraints)) return false
+                        if (entryA.v !in evaluator.possibleValues(b, k, this)) return false
                     }
                 }
                 is RuleSet -> when (entryB) {
@@ -226,14 +236,14 @@ class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matc
                         // A depends on B
                         if (b.id in entryA.rules.map { it.id }) return false
                         // A can't have value of B
-                        if (entryB.v !in evaluator.possibleValues(a, k, constraints)) return false
+                        if (entryB.v !in evaluator.possibleValues(a, k, this)) return false
                     }
                     is RuleSet -> {
                         // One depends on the other
                         if (a.id in entryB.rules.map { it.id } || b.id in entryA.rules.map { it.id }) return false
                         // No common values
-                        val valuesA = evaluator.possibleValues(a, k, constraints)
-                        val valuesB = evaluator.possibleValues(b, k, constraints)
+                        val valuesA = evaluator.possibleValues(a, k, this)
+                        val valuesB = evaluator.possibleValues(b, k, this)
                         val commonValues = valuesA.intersect(valuesB)
                         if (commonValues.isEmpty()) return false
                     }
@@ -244,31 +254,7 @@ class MatcherImpl(private val evaluator: Simplifier.Evaluator) : Simplifier.Matc
     }
 }
 
-class MergerImpl : Simplifier.Merger {
-
-    override fun merge(i: Int, j: Int, constraints: List<Constraint>): Constraint {
-        println("> Merge")
-        val a = constraints[i]
-        val b = constraints[j]
-        val c = Constraint(a.id, *a.entries)
-        for (k in c.entries.indices) {
-            c.entries[k] = when (val entry = c.entries[k]) {
-                is None -> b.entries[k]
-                is Value -> entry
-                is RuleSet -> when (val otherEntry = b.entries[k]) {
-                    is None -> entry
-                    is Value -> otherEntry
-                    is RuleSet -> RuleSet(entry.rules.union(otherEntry.rules))
-                }
-            }
-        }
-        println("${a.show()} + ${b.show()} = ${c.show()}")
-        println()
-        return c
-    }
-}
-
-class EvaluatorImpl : Simplifier.Evaluator {
+class EvaluatorImpl : Evaluator {
 
     override fun possibleValues(
             parent: Constraint,
@@ -287,7 +273,7 @@ class EvaluatorImpl : Simplifier.Evaluator {
                 val e = it.entries[entryIndex]
                 e is Value && e.v == v
             }
-            if (c != null && distinct(parent, c, entryIndex, constraints)) {
+            if (c != null && constraints.distinct(parent, c, entryIndex)) {
                 valuesToRemove += v
             }
         }
@@ -331,11 +317,10 @@ class EvaluatorImpl : Simplifier.Evaluator {
         return result
     }
 
-    private fun distinct(
+    private fun List<Constraint>.distinct(
             a: Constraint,
             b: Constraint,
-            entryIndex: Int,
-            constraints: List<Constraint>
+            entryIndex: Int
     ): Boolean {
         for (k in a.entries.indices) {
             if (k == entryIndex) continue
@@ -348,7 +333,7 @@ class EvaluatorImpl : Simplifier.Evaluator {
                         // B depends on A
                         if (a.id in entryB.rules.map { it.id }) return true
                         // B can't have value of A
-                        if (entryA.v !in possibleValues(b, k, constraints)) return true
+                        if (entryA.v !in possibleValues(b, k, this)) return true
                     }
                 }
                 is RuleSet -> when (entryB) {
@@ -356,14 +341,14 @@ class EvaluatorImpl : Simplifier.Evaluator {
                         // A depends on B
                         if (b.id in entryA.rules.map { it.id }) return true
                         // A can't have value of B
-                        if (entryB.v !in possibleValues(a, k, constraints)) return true
+                        if (entryB.v !in possibleValues(a, k, this)) return true
                     }
                     is RuleSet -> {
                         // One depends on the other
                         if (a.id in entryB.rules.map { it.id } || b.id in entryA.rules.map { it.id }) return true
                         // No common values
-                        val valuesA = possibleValues(a, k, constraints)
-                        val valuesB = possibleValues(b, k, constraints)
+                        val valuesA = possibleValues(a, k, this)
+                        val valuesB = possibleValues(b, k, this)
                         val commonValues = valuesA.intersect(valuesB)
                         if (commonValues.isEmpty()) return true
                     }
@@ -372,8 +357,17 @@ class EvaluatorImpl : Simplifier.Evaluator {
         }
         return false
     }
-
 }
+
+interface Evaluator {
+    fun possibleValues(parent: Constraint, entryIndex: Int, constraints: List<Constraint>): Set<Int>
+}
+
+interface Matcher {
+    fun findMatch(constraints: List<Constraint>): Pair<Int, Int>?
+}
+
+// Model
 
 class Constraint(val id: Int, vararg entries: Entry) {
 
@@ -401,6 +395,18 @@ class Relation(
         val f: (Int) -> Set<Int>, // relation function
         val g: (Int) -> Set<Int>  // reciprocal of f
 )
+
+// Utility functions
+
+fun <T : Enum<T>> value(v: T) = Value(v.ordinal)
+
+fun value(v: Int) = Value(v)
+
+fun rule(relation: Relation, id: Int): RuleSet = RuleSet(hashSetOf(Rule(relation, id)))
+
+// =============================
+// The Zebra Problem
+// =============================
 
 enum class Colors { RED, GREEN, IVORY, YELLOW, BLUE }
 enum class Nations { ENGLISHMAN, SPANIARD, UKRAINIAN, JAPANESE, NORWEGIAN }
@@ -437,12 +443,6 @@ object Relations {
         return variants.intersect(setOf(v - 1, v + 1))
     }
 }
-
-fun <T : Enum<T>> value(v: T) = Value(v.ordinal)
-
-fun value(v: Int) = Value(v)
-
-fun rule(relation: Relation, id: Int): RuleSet = RuleSet(hashSetOf(Rule(relation, id)))
 
 fun main() {
     val merger = Simplifier().apply {
