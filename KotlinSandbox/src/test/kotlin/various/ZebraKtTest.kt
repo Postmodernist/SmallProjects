@@ -3,6 +3,7 @@ package various
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import various.Colors.*
+import various.Cigarettes.*
 import various.Drinks.*
 import various.Entry.*
 import various.Nations.*
@@ -13,7 +14,7 @@ import various.Relations.nextTo
 class ZebraKtTest {
 
     @Test
-    fun testRules01() = makeTest {
+    fun test01() = makeTest("Test 01") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(3), value(RED), None, None, None, None),
@@ -28,7 +29,7 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules02() = makeTest {
+    fun test02() = makeTest("Test 02") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(3), value(RED), None, value(DOG), None, None),
@@ -43,7 +44,7 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules03() = makeTest {
+    fun test03() = makeTest("Test 03") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
@@ -58,7 +59,7 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules04() = makeTest {
+    fun test04() = makeTest("Test 04") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), None, None, None, None),
@@ -73,7 +74,7 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules05() = makeTest {
+    fun test05() = makeTest("Test 05") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, value(2), value(RED), value(SPANIARD), None, None, None),
@@ -92,7 +93,7 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules06() = makeTest {
+    fun test06() = makeTest("Test 06") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
                 Constraint(100, None, value(IVORY), None, None, None, None),
@@ -112,30 +113,51 @@ class ZebraKtTest {
     }
 
     @Test
-    fun testRules07() = makeTest {
+    fun test07() = makeTest("Test 07") {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         constraints(
-                Constraint(100, None, value(IVORY), None, None, None, None),
-                Constraint(101, rule(imRight, 100), value(GREEN), None, None, None, None),
-                Constraint(102, rule(imRight, 101), value(RED), None, None, None, None),
-                Constraint(103, rule(imRight, 102), None, value(NORWEGIAN), None, None, None),
-                Constraint(104, rule(imRight, 103), None, None, None, value(MILK), None)
+                Constraint(100, value(0), value(IVORY), None, None, None, None),
+                Constraint(101, rule(imRight, 100), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, rule(imRight, 101), None, None, value(ZEBRA), None, None),
+                Constraint(103, rule(imRight, 102), None, None, None, value(COFFEE), None),
+                Constraint(104, rule(imRight, 103), None, None, None, None, value(CHESTERFIELDS))
         )
         expected(
                 arrayOf(0, IVORY.ordinal, -1, -1, -1, -1),
-                arrayOf(1, GREEN.ordinal, -1, -1, -1, -1),
-                arrayOf(2, RED.ordinal, -1, -1, -1, -1),
-                arrayOf(3, -1, NORWEGIAN.ordinal, -1, -1, -1),
-                arrayOf(4, -1, -1, -1, MILK.ordinal, -1)
+                arrayOf(1, -1, ENGLISHMAN.ordinal, -1, -1, -1),
+                arrayOf(2, -1, -1, ZEBRA.ordinal, -1, -1),
+                arrayOf(3, -1, -1, -1, COFFEE.ordinal, -1),
+                arrayOf(4, -1, -1, -1, -1, CHESTERFIELDS.ordinal)
         )
     }
 
-    private fun makeTest(block: TestData.() -> Unit) {
+    @Test
+    fun test08() = makeTest("Test 08") {
+        // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
+        constraints(
+                Constraint(100, value(0), value(IVORY), None, None, None, None),
+                Constraint(101, rule(nextTo, 100), None, value(ENGLISHMAN), None, None, None),
+                Constraint(102, rule(nextTo, 101), None, None, value(ZEBRA), None, None),
+                Constraint(103, rule(nextTo, 102), None, None, None, value(COFFEE), None),
+                Constraint(104, rule(nextTo, 103), None, None, None, None, value(CHESTERFIELDS))
+        )
+        expected(
+                arrayOf(0, IVORY.ordinal, -1, -1, -1, -1),
+                arrayOf(1, -1, ENGLISHMAN.ordinal, -1, -1, -1),
+                arrayOf(-1, -1, -1, ZEBRA.ordinal, -1, -1),
+                arrayOf(-1, -1, -1, -1, COFFEE.ordinal, -1),
+                arrayOf(-1, -1, -1, -1, -1, CHESTERFIELDS.ordinal)
+        )
+    }
+
+    private fun makeTest(title: String, block: TestData.() -> Unit) {
+        println("=== $title ===\n")
         val testData = TestData().apply { block() }
         val simplifier = Simplifier().apply { testData.constraints.forEach { add(it) } }.simplify()
-        simplifier.constraints.forEach { println(it.show()) }
-        val result = simplifier.constraints.map {
-            it.entries.map { e -> if (e is Value) e.v else -1 }.toTypedArray()
+        simplifier.constraints.forEach { (_, c) -> println(c.show()) }
+        println()
+        val result = simplifier.constraints.map { (_, c) ->
+            c.entries.map { e -> if (e is Value) e.v else -1 }.toTypedArray()
         }.toTypedArray()
         assertArrayEquals(testData.expected, result)
     }
