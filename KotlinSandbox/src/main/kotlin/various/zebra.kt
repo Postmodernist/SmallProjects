@@ -38,34 +38,118 @@ import various.Relations.nextTo
 import java.util.*
 import kotlin.collections.HashMap
 
-class Simplifier {
+typealias Constraints = HashMap<Int, Constraint>
 
-    val constraints = HashMap<Int, Constraint>()
-    private val matcher = MatcherImpl()
-    private val evaluator = EvaluatorImpl()
+typealias Model = HashMap<Int, ArrayList<HashSet<Int>>>
 
-    fun add(a: Constraint) {
-        constraints[a.id] = a
+interface Simplifier {
+
+    val constraints: Constraints
+
+    fun add(constraint: Constraint)
+
+    fun simplify(): Simplifier
+}
+
+interface Cook {
+
+    fun prepare(constraints: Constraints): Model
+}
+
+interface HoradricCube {
+
+    fun transmute(
+            constraints: Constraints,
+            model: Model
+    ): HoradricResult
+}
+
+sealed class HoradricResult {
+
+    object Contradiction : HoradricResult()
+
+    class Match(val idA: Int, val idB: Int) : HoradricResult()
+
+    object Modified : HoradricResult()
+
+    object Unchanged : HoradricResult()
+}
+
+interface Merger {
+
+    fun mergeConstraints(
+            constraints: Constraints,
+            idA: Int,
+            idB: Int
+    )
+
+    fun mergeModel(
+            model: Model,
+            idA: Int,
+            idB: Int
+    )
+}
+
+interface Matcher {
+
+    fun findMatch(constraints: Constraints): Pair<Int, Int>?
+
+    fun findMatch(constraints: Constraints, constraintId: Int, entryIndex: Int, value: Int): Int?
+}
+
+class Provider {
+
+    private val matcher: Matcher = MatcherImpl()
+    private val merger: Merger = MergerImpl()
+    private val cook: Cook = CookImpl(matcher, merger)
+    private val horadricCube: HoradricCube = HoradricCubeImpl(matcher, merger)
+    private val simplifier: Simplifier = SimplifierImpl(cook, horadricCube, merger)
+
+    fun provideSimplifier(): Simplifier = simplifier
+}
+
+class SimplifierImpl(
+        private val cook: Cook,
+        private val cube: HoradricCube,
+        private val merger: Merger
+) : Simplifier {
+
+    override val constraints: Constraints = HashMap()
+
+    override fun add(constraint: Constraint) {
+        constraints[constraint.id] = constraint
     }
 
-    fun simplify(): Simplifier {
-        constraints.addReciprocalRelations()
-        var i = 1
-        var modified = true
-        while (modified) {
-            println(":: Iteration ${i++}\n")
-            modified = false
-            if (constraints.mergeMatches()) {
-                modified = true
-            }
-            if (constraints.resolveRules()) {
-                modified = true
+    override fun simplify(): Simplifier {
+        val model = cook.prepare(constraints)
+        loop@ while (true) {
+            when (val result = cube.transmute(constraints, model)) {
+                is HoradricResult.Unchanged, HoradricResult.Modified ->
+                    break@loop
+                is HoradricResult.Contradiction ->
+                    throw IllegalStateException("Contradiction")
+                is HoradricResult.Match -> {
+                    merger.mergeConstraints(constraints, result.idA, result.idB)
+                    merger.mergeModel(model, result.idA, result.idB)
+                }
             }
         }
         return this
     }
+}
 
-    private fun HashMap<Int, Constraint>.addReciprocalRelations() {
+class CookImpl(
+        private val matcher: Matcher,
+        private val merger: Merger
+) : Cook {
+
+    override fun prepare(constraints: Constraints): Model {
+        constraints.addReciprocalRelations()
+        constraints.mergeMatches()
+        return constraints.cookModel()
+    }
+
+    private fun Constraints.addReciprocalRelations() {
         for (constraint in values) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is RuleSet) {
@@ -85,20 +169,215 @@ class Simplifier {
         }
     }
 
-    private fun HashMap<Int, Constraint>.mergeMatches(): Boolean {
+    private fun Constraints.mergeMatches() {
         println("> Merge matches")
-        var modified = false
         while (true) {
             val match = matcher.findMatch(this) ?: break
-            merge(match.first, match.second)
-            modified = true
+            merger.mergeConstraints(this, match.first, match.second)
         }
-        return modified
     }
 
-    private fun HashMap<Int, Constraint>.merge(idA: Int, idB: Int) {
-        val a = get(idA)!!
-        val b = get(idB)!!
+    private fun Constraints.cookModel(): Model {
+        val model: Model = HashMap()
+        for ((id, constraint) in this) {
+            val constraintValues = ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
+            for (entry in constraint.entries) {
+                val entryValues = if (entry is Value) {
+                    hashSetOf(entry.v)
+                } else {
+                    HashSet(Constraint.defaultVariants)
+                }
+                constraintValues.add(entryValues)
+            }
+            model[id] = constraintValues
+        }
+        return model
+    }
+}
+
+class HoradricCubeImpl(
+        private val matcher: Matcher,
+        private val merger: Merger
+) : HoradricCube {
+
+    override fun transmute(constraints: Constraints, model: Model): HoradricResult {
+        var transmuteResult: HoradricResult = HoradricResult.Unchanged
+        var modified = true
+        while (modified) {
+            modified = false
+            when (val result = model.relaxFixPoint(constraints)) {
+                is HoradricResult.Contradiction -> return result
+                is HoradricResult.Match -> return result
+                is HoradricResult.Modified -> modified = true
+            }
+            when (val result = model.sieve(constraints)) {
+                is HoradricResult.Contradiction -> return result
+                is HoradricResult.Match -> return result
+                is HoradricResult.Modified -> modified = true
+            }
+            if (modified) {
+                transmuteResult = HoradricResult.Modified
+            }
+        }
+        return transmuteResult
+    }
+
+    private fun Model.relaxFixPoint(constraints: Constraints): HoradricResult {
+        var modified = false
+        var result: HoradricResult
+        do {
+            result = relax(constraints)
+            if (result == HoradricResult.Modified) {
+                modified = true
+            }
+        } while (result == HoradricResult.Modified)
+        return when {
+            result == HoradricResult.Unchanged && !modified -> HoradricResult.Unchanged
+            result == HoradricResult.Unchanged && modified -> HoradricResult.Modified
+            else -> result
+        }
+    }
+
+    private fun Model.relax(constraints: Constraints): HoradricResult {
+        var modified = false
+        for ((id, constraint) in constraints) {
+            for ((i, entry) in constraint.entries.withIndex()) {
+                if (entry is RuleSet) {
+                    val oldValues = get(id)!![i]
+                    val newValues = resolveRules(entry, i)
+                    newValues.removeClashes(this, constraints, id, i)
+                    if (newValues.isEmpty()) {
+                        return HoradricResult.Contradiction
+                    }
+                    if (newValues != oldValues) {
+                        get(id)!![i] = newValues
+                        if (newValues.size == 1) {
+                            val v = newValues.first()
+                            constraint.entries[i] = Value(v)
+                            val otherId = matcher.findMatch(constraints, id, i, v)
+                            if (otherId != null) {
+                                return HoradricResult.Match(id, otherId)
+                            }
+                        }
+                        modified = true
+                    }
+                }
+            }
+        }
+        return if (modified) HoradricResult.Modified else HoradricResult.Unchanged
+    }
+
+    private fun Model.resolveRules(entry: RuleSet, i: Int): HashSet<Int> {
+        val entryValues = HashSet(Constraint.defaultVariants)
+        for (rule in entry.rules) {
+            val ruleValues = HashSet<Int>()
+            val refValues = get(rule.id)!![i]
+            for (v in refValues) {
+                ruleValues.addAll(rule.relation.f(v))
+            }
+            entryValues.retainAll(ruleValues)
+        }
+        return entryValues
+    }
+
+    private fun HashSet<Int>.removeClashes(
+            model: Model,
+            constraints: Constraints,
+            constraintId: Int,
+            entryIndex: Int
+    ) {
+        val valuesToRemove = ArrayList<Int>()
+        loop@ for (v in this) {
+            val idB = matcher.findMatch(constraints, constraintId, entryIndex, v) ?: continue
+            for (i in 0 until Constraint.ENTRIES_SIZE) {
+                if (i == entryIndex) continue
+                val valuesA = model[constraintId]!![i]
+                val valuesB = model[idB]!![i]
+                if (valuesA.intersect(valuesB).isEmpty()) {
+                    valuesToRemove.add(v)
+                    continue@loop
+                }
+            }
+        }
+        removeAll(valuesToRemove)
+    }
+
+    private fun Model.sieve(constraints: Constraints): HoradricResult {
+        var modified = false
+        for ((id, constraint) in constraints) {
+            for ((i, entry) in constraint.entries.withIndex()) {
+                if (entry !is Value) {
+                    val entryValues = get(id)!![i]
+                    val valuesToRemove = HashSet<Int>()
+                    for (v in entryValues) {
+                        val constraintsCopy = constraints.copyConstraints()
+                        val modelCopy = copyModel()
+                        modelCopy[id]!![i] = hashSetOf(v)
+                        var result: HoradricResult
+                        do {
+                            result = modelCopy.relaxFixPoint(constraints)
+                            if (result is HoradricResult.Match) {
+                                merger.mergeConstraints(constraintsCopy, result.idA, result.idB)
+                                merger.mergeModel(modelCopy, result.idA, result.idB)
+                            }
+                        } while (result is HoradricResult.Match)
+                        if (result == HoradricResult.Contradiction) {
+                            valuesToRemove.add(v)
+                        }
+                    }
+                    if (valuesToRemove.isNotEmpty()) {
+                        modified = true
+                    }
+                    entryValues.removeAll(valuesToRemove)
+                    if (entryValues.isEmpty()) return HoradricResult.Contradiction
+                    if (entryValues.size == 1) {
+                        val v = entryValues.first()
+                        constraint.entries[i] = Value(v)
+                        val otherId = matcher.findMatch(constraints, id, i, v)
+                        if (otherId != null) {
+                            return HoradricResult.Match(id, otherId)
+                        }
+                    }
+                }
+            }
+        }
+        return if (modified) HoradricResult.Modified else HoradricResult.Unchanged
+    }
+
+    private fun Model.copyModel(): Model {
+        val modelCopy: Model = HashMap()
+        for ((id, constraintValues) in this) {
+            val constraintValuesCopy = ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
+            for (entryValues in constraintValues) {
+                constraintValuesCopy.add(HashSet(entryValues))
+            }
+            modelCopy[id] = constraintValuesCopy
+        }
+        return modelCopy
+    }
+
+    private fun Constraints.copyConstraints(): Constraints {
+        val constraintsCopy: Constraints = HashMap()
+        for ((id, constraint) in this) {
+            val entriesCopy = Array<Entry>(Constraint.ENTRIES_SIZE) { None }
+            for ((i, entry) in constraint.entries.withIndex()) {
+                entriesCopy[i] = when (entry) {
+                    is None -> None
+                    is Value -> Value(entry.v)
+                    is RuleSet -> RuleSet(entry.rules)
+                }
+            }
+            constraintsCopy[id] = Constraint(id, *entriesCopy)
+        }
+        return constraintsCopy
+    }
+}
+
+class MergerImpl : Merger {
+
+    override fun mergeConstraints(constraints: Constraints, idA: Int, idB: Int) {
+        val a = constraints[idA]!!
+        val b = constraints[idB]!!
         print("${a.show()} + ${b.show()} = ")
         for (k in a.entries.indices) {
             a.entries[k] = when (val entry = a.entries[k]) {
@@ -112,11 +391,11 @@ class Simplifier {
             }
         }
         println(a.show())
-        remove(idB)
-        updateRules(idB, idA)
+        constraints.remove(idB)
+        constraints.updateRules(idB, idA)
     }
 
-    private fun HashMap<Int, Constraint>.updateRules(oldId: Int, newId: Int) {
+    private fun Constraints.updateRules(oldId: Int, newId: Int) {
         for (c in values) {
             for (e in c.entries) {
                 if (e is RuleSet) e.rules.forEach { if (it.id == oldId) it.id = newId }
@@ -124,46 +403,25 @@ class Simplifier {
         }
     }
 
-    private fun HashMap<Int, Constraint>.resolveRules(): Boolean {
-        println("> Resolve rules")
-        evaluator.use(constraints)
-        var modified = false
-        val ids = keys.toIntArray()
-        for (id in ids) {
-            for (i in 0 until Constraint.ENTRIES_SIZE) {
-                if (resolveEntry(id, i)) {
-                    modified = true
-                }
-            }
+    override fun mergeModel(model: Model, idA: Int, idB: Int) {
+        val a = model[idA]!!
+        val b = model[idB]!!
+        for (i in a.indices) {
+            a[i].retainAll(b[i])
         }
-        println()
-        return modified
-    }
-
-    private fun HashMap<Int, Constraint>.resolveEntry(constraintId: Int, entryIndex: Int): Boolean {
-        val c = get(constraintId)!!
-        if (c.entries[entryIndex] !is RuleSet) return false
-        println("Resolve entry $entryIndex of ${c.show()}")
-        val values = evaluator.possibleValues(constraintId, entryIndex)
-        println("Possible values = ${Arrays.toString(values.toIntArray().apply { sort() })}")
-        return if (values.size != 1) false else {
-            val v = values.first()
-            c.entries[entryIndex] = Value(v)
-            true
-        }
+        model.remove(idB)
     }
 }
 
 class MatcherImpl : Matcher {
 
-    override fun findMatch(constraints: Map<Int, Constraint>): Pair<Int, Int>? {
+    override fun findMatch(constraints: Constraints): Pair<Int, Int>? {
         val ids = constraints.keys.toIntArray()
         for (i in 0 until ids.size - 1) {
             for (j in i + 1 until ids.size) {
                 val idA = ids[i]
                 val idB = ids[j]
                 if (constraints.match(idA, idB)) {
-                    println("Found match: ${constraints[idA]?.show()} and ${constraints[idB]?.show()}")
                     return Pair(idA, idB)
                 }
             }
@@ -171,7 +429,23 @@ class MatcherImpl : Matcher {
         return null
     }
 
-    private fun Map<Int, Constraint>.match(idA: Int, idB: Int): Boolean {
+    override fun findMatch(
+            constraints: Constraints,
+            constraintId: Int,
+            entryIndex: Int,
+            value: Int
+    ): Int? {
+        for ((id, constraint) in constraints) {
+            if (id == constraintId) continue
+            val entry = constraint.entries[entryIndex]
+            if (entry is Value && entry.v == value) {
+                return id
+            }
+        }
+        return null
+    }
+
+    private fun Constraints.match(idA: Int, idB: Int): Boolean {
         val a = get(idA)!!
         val b = get(idB)!!
         for (k in a.entries.indices) {
@@ -181,224 +455,6 @@ class MatcherImpl : Matcher {
         }
         return false
     }
-}
-
-class EvaluatorImpl : Evaluator {
-
-    private lateinit var constraints: Map<Int, Constraint>
-    private lateinit var estimated: Estimated
-    private lateinit var explored: Explored
-
-    override fun use(constraints: Map<Int, Constraint>) {
-        this.constraints = constraints
-        estimated = Estimated(constraints)
-        explored = Explored(constraints)
-    }
-
-    override fun possibleValues(constraintId: Int, entryIndex: Int): Set<Int> {
-        explored.reset()
-        return findPossibleValues(constraintId, entryIndex)
-    }
-
-    private fun findPossibleValues(constraintId: Int, entryIndex: Int): Set<Int> {
-        val entry = constraint.entries[entryIndex] as? RuleSet
-                ?: throw java.lang.IllegalArgumentException("Entry is not a RuleSet")
-        var modified = true
-        while (modified) {
-            modified = false
-            if (entry.rules.findValuesFixedPoint(constraint)) {
-                modified = true
-            }
-            val values = estimatedValues[constraint.id]
-            if (values.isNullOrEmpty()) throw IllegalStateException("No possible values found")
-            val possibleValues = HashSet<Int>()
-            for (v in values) {
-                if (constraint.isValuePossible(v)) possibleValues.add(v)
-            }
-            if (possibleValues.isEmpty()) throw IllegalStateException("No possible values found")
-            if (possibleValues != values) {
-                estimatedValues[constraint.id] = possibleValues
-                modified = true
-            }
-        }
-        return estimatedValues.safeGet(constraint.id)
-    }
-
-    private fun Set<Rule>.findValuesFixedPoint(parent: Constraint): Boolean {
-        var lastEstimatedValues: HashMap<Int, HashSet<Int>>
-        var modified = false
-        while (true) {
-            lastEstimatedValues = HashMap(estimatedValues)
-            estimateValues(parent, entryIndex, constraints, estimatedValues)
-            if (estimatedValues != lastEstimatedValues) {
-                modified = true
-            } else {
-                break
-            }
-        }
-        return modified
-    }
-
-    private fun Set<Rule>.estimateValues(
-            parent: Constraint,
-            entryIndex: Int,
-            constraints: List<Constraint>,
-            estimatedValues: HashMap<Int, HashSet<Int>>
-    ): Set<Int> {
-        for (rule in this) {
-            rule.evaluate(parent, entryIndex, constraints, estimatedValues)
-        }
-        return estimatedValues.safeGet(parent.id)
-    }
-
-    private fun Rule.evaluate(
-            parent: Constraint,
-            entryIndex: Int,
-            constraints: List<Constraint>,
-            estimatedValues: HashMap<Int, HashSet<Int>>
-    ) {
-        // Initialize set of values.
-        if (!estimatedValues.contains(parent.id)) {
-            estimatedValues[parent.id] = HashSet(Constraint.defaultVariants)
-        }
-        // Get constraint referenced by this rule.
-        val ref = constraints.find { it.id == id }
-                ?: throw IllegalStateException("Referenced id = $id not found")
-        // Get set of values of entry at entryIndex of referenced constraint.
-        val refValues = estimatedValues[ref.id]
-                ?: when (val refEntry = ref.entries[entryIndex]) {
-                    None -> Constraint.defaultVariants
-                    is Value -> setOf(refEntry.v)
-                    is RuleSet ->
-                        refEntry.rules.estimateValues(ref, entryIndex, constraints, estimatedValues)
-                }
-        // Apply this rule's relation to each value of referenced entry and collect results.
-        val ruleValues = HashSet<Int>()
-        for (v in refValues) {
-            ruleValues.addAll(relation.f(v))
-        }
-        if (ruleValues.isEmpty()) throw IllegalStateException("No possible values found")
-        estimatedValues[parent.id]?.retainAll(ruleValues)
-    }
-
-    private fun HashMap<Int, HashSet<Int>>.safeGet(id: Int): Set<Int> {
-        val result = get(id)
-        if (result.isNullOrEmpty()) throw IllegalStateException("Evaluation error")
-        return result
-    }
-
-    private fun Constraint.isValuePossible(v: Int): Boolean {
-        constraints.filter { c ->
-            val e = c.entries[entryIndex]
-            e is Value && e.v == v
-        }.forEach { other ->
-            if (distinct(this, other)) return false
-        }
-        return true
-    }
-
-    private fun distinct(a: Constraint, b: Constraint, entryIndex: Int): Boolean {
-        for (k in a.entries.indices) {
-            if (k == entryIndex) continue // skip estimated entry
-            val entryA = a.entries[k]
-            val entryB = b.entries[k]
-            when (entryA) {
-                is Value -> when (entryB) {
-                    is Value -> return entryA.v != entryB.v
-                    is RuleSet -> {
-                        // B depends on A
-                        if (a.id in entryB.rules.map { it.id }) return true
-                        // B can't have value of A
-                        if (entryA.v !in possibleValues(b.id, k)) return true
-                    }
-                }
-                is RuleSet -> when (entryB) {
-                    is Value -> {
-                        // A depends on B
-                        if (b.id in entryA.rules.map { it.id }) return true
-                        // A can't have value of B
-                        if (entryB.v !in possibleValues(a.id, k)) return true
-                    }
-                    is RuleSet -> {
-                        // One depends on the other
-                        if (a.id in entryB.rules.map { it.id } || b.id in entryA.rules.map { it.id }) return true
-                        // No common values
-                        val valuesA = possibleValues(a.id, k)
-                        val valuesB = possibleValues(b.id, k)
-                        val commonValues = valuesA.intersect(valuesB)
-                        if (commonValues.isEmpty()) return true
-                    }
-                }
-            }
-        }
-        return false
-    }
-}
-
-class Estimated(constraints: Map<Int, Constraint>) {
-
-    val values: HashMap<Int, ArrayList<HashSet<Int>>> = HashMap(constraints.size)
-    private val savedValues: HashMap<Int, ArrayList<HashSet<Int>>> = HashMap(constraints.size)
-
-    init {
-        for ((id, constraint) in constraints) {
-            val constraintValues = ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
-            for (entry in constraint.entries) {
-                val entryValues = if (entry is Value) {
-                    hashSetOf(entry.v)
-                } else {
-                    HashSet(Constraint.defaultVariants)
-                }
-                constraintValues.add(entryValues)
-            }
-            values[id] = constraintValues
-        }
-    }
-
-    fun saveSnapshot() {
-        savedValues.clear()
-        for ((id, constraintValues) in values) {
-            val constraintValuesCopy = ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
-            for (entryValues in constraintValues) {
-                constraintValuesCopy.add(HashSet(entryValues))
-            }
-            savedValues[id] = constraintValuesCopy
-        }
-    }
-
-    fun isModified(): Boolean = values == savedValues
-}
-
-class Explored(constraints: Map<Int, Constraint>) {
-
-    val entries: HashMap<Int, Array<Boolean>> = HashMap(constraints.size)
-
-    init {
-        val ids = constraints.keys.toIntArray()
-        for (id in ids) {
-            entries[id] = Array(Constraint.ENTRIES_SIZE) { false }
-        }
-    }
-
-    fun reset() {
-        for ((_, a) in entries) {
-            for (i in a.indices) {
-                a[i] = false
-            }
-        }
-    }
-}
-
-interface Matcher {
-
-    fun findMatch(constraints: Map<Int, Constraint>): Pair<Int, Int>?
-}
-
-interface Evaluator {
-
-    fun use(constraints: Map<Int, Constraint>)
-
-    fun possibleValues(constraintId: Int, entryIndex: Int): Set<Int>
 }
 
 // Model
@@ -479,7 +535,7 @@ object Relations {
 }
 
 fun main() {
-    val simplifier = Simplifier().apply {
+    val simplifier = Provider().provideSimplifier().apply {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         add(Constraint(100, None, value(RED), value(ENGLISHMAN), None, None, None))
         add(Constraint(101, None, None, value(SPANIARD), value(DOG), None, None))

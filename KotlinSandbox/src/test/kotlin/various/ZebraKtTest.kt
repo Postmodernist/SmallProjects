@@ -2,10 +2,11 @@ package various
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import various.Cigarettes.CHESTERFIELDS
 import various.Colors.*
-import various.Cigarettes.*
 import various.Drinks.*
-import various.Entry.*
+import various.Entry.None
+import various.Entry.Value
 import various.Nations.*
 import various.Pets.*
 import various.Relations.imRight
@@ -153,7 +154,9 @@ class ZebraKtTest {
     private fun makeTest(title: String, block: TestData.() -> Unit) {
         println("=== $title ===\n")
         val testData = TestData().apply { block() }
-        val simplifier = Simplifier().apply { testData.constraints.forEach { add(it) } }.simplify()
+        val simplifier = Provider().provideSimplifier().apply {
+            testData.constraints.forEach { add(it) }
+        }.simplify()
         simplifier.constraints.forEach { (_, c) -> println(c.show()) }
         println()
         val result = simplifier.constraints.map { (_, c) ->
