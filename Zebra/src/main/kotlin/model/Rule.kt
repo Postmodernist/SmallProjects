@@ -1,3 +1,5 @@
 package model
 
-class Rule(val relation: Relation, var id: Int)
+data class Rule(val relation: Relation, var id: Int) {
+    override fun toString(): String = "($relation, $id)"
+}

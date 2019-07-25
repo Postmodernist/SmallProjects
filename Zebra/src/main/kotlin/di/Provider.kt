@@ -12,4 +12,8 @@ class Provider {
     private val simplifier: Simplifier = SimplifierImpl(cook, horadricCube, merger)
 
     fun provideSimplifier(): Simplifier = simplifier
+
+    fun provideMatcher(): Matcher = matcher
+
+    fun provideMerger(): Merger = merger
 }
