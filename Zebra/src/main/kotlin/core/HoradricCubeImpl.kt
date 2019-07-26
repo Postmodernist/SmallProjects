@@ -1,15 +1,24 @@
 package core
 
-import results.HoradricResult
+import Constraints
+import Model
 import interfaces.HoradricCube
 import interfaces.Matcher
 import interfaces.Merger
 import model.Constraint
-import Constraints
 import model.Entry
-import Model
-import java.util.ArrayList
-import java.util.HashSet
+import results.HoradricResult
+import java.util.*
+import kotlin.collections.HashMap
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.first
+import kotlin.collections.hashSetOf
+import kotlin.collections.intersect
+import kotlin.collections.isNotEmpty
+import kotlin.collections.iterator
+import kotlin.collections.set
+import kotlin.collections.withIndex
 
 class HoradricCubeImpl(
     private val matcher: Matcher,
@@ -21,12 +30,12 @@ class HoradricCubeImpl(
         var modified = true
         while (modified) {
             modified = false
-            when (val result = model.relaxFixPoint(constraints)) {
+            when (val result = relaxFixPoint(model, constraints)) {
                 is HoradricResult.Contradiction -> return result
                 is HoradricResult.Match -> return result
                 is HoradricResult.Modified -> modified = true
             }
-            when (val result = model.sieve(constraints)) {
+            when (val result = sieve(model, constraints)) {
                 is HoradricResult.Contradiction -> return result
                 is HoradricResult.Match -> return result
                 is HoradricResult.Modified -> modified = true
@@ -38,11 +47,11 @@ class HoradricCubeImpl(
         return transmuteResult
     }
 
-    private fun Model.relaxFixPoint(constraints: Constraints): HoradricResult {
+    private fun relaxFixPoint(model: Model, constraints: Constraints): HoradricResult {
         var modified = false
         var result: HoradricResult
         do {
-            result = relax(constraints)
+            result = relax(model, constraints)
             if (result == HoradricResult.Modified) {
                 modified = true
             }
@@ -54,19 +63,19 @@ class HoradricCubeImpl(
         }
     }
 
-    private fun Model.relax(constraints: Constraints): HoradricResult {
+    private fun relax(model: Model, constraints: Constraints): HoradricResult {
         var modified = false
         for ((id, constraint) in constraints) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is Entry.RuleSet) {
-                    val oldValues = get(id)!![i]
-                    val newValues = resolveRules(entry, i)
-                    newValues.removeClashes(this, constraints, id, i)
+                    val oldValues = model[id]!![i]
+                    val newValues = resolveRules(model, entry, i)
+                    newValues.removeClashes(model, constraints, id, i)
                     if (newValues.isEmpty()) {
                         return HoradricResult.Contradiction
                     }
                     if (newValues != oldValues) {
-                        get(id)!![i] = newValues
+                        model[id]!![i] = newValues
                         if (newValues.size == 1) {
                             val v = newValues.first()
                             constraint.entries[i] = Entry.Value(v)
@@ -83,11 +92,11 @@ class HoradricCubeImpl(
         return if (modified) HoradricResult.Modified else HoradricResult.Unchanged
     }
 
-    private fun Model.resolveRules(entry: Entry.RuleSet, i: Int): HashSet<Int> {
+    private fun resolveRules(model: Model, entry: Entry.RuleSet, i: Int): HashSet<Int> {
         val entryValues = HashSet(Constraint.defaultVariants)
         for (rule in entry.rules) {
             val ruleValues = HashSet<Int>()
-            val refValues = get(rule.id)!![i]
+            val refValues = model[rule.id]!![i]
             for (v in refValues) {
                 ruleValues.addAll(rule.relation.f(v))
             }
@@ -118,26 +127,18 @@ class HoradricCubeImpl(
         removeAll(valuesToRemove)
     }
 
-    private fun Model.sieve(constraints: Constraints): HoradricResult {
+    private fun sieve(model: Model, constraints: Constraints): HoradricResult {
         var modified = false
         for ((id, constraint) in constraints) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry !is Entry.Value) {
-                    val entryValues = get(id)!![i]
+                    val entryValues = model[id]!![i]
                     val valuesToRemove = HashSet<Int>()
                     for (v in entryValues) {
                         val constraintsCopy = constraints.copyConstraints()
-                        val modelCopy = copyModel()
+                        val modelCopy = model.copyModel()
                         modelCopy[id]!![i] = hashSetOf(v)
-                        var result: HoradricResult
-                        do {
-                            result = modelCopy.relaxFixPoint(constraints)
-                            if (result is HoradricResult.Match) {
-                                merger.mergeConstraints(constraintsCopy, result.idA, result.idB)
-                                merger.mergeModel(modelCopy, result.idA, result.idB)
-                            }
-                        } while (result is HoradricResult.Match)
-                        if (result == HoradricResult.Contradiction) {
+                        if (checkContradiction(modelCopy, constraintsCopy)) {
                             valuesToRemove.add(v)
                         }
                     }
@@ -158,6 +159,18 @@ class HoradricCubeImpl(
             }
         }
         return if (modified) HoradricResult.Modified else HoradricResult.Unchanged
+    }
+
+    private fun checkContradiction(model: Model, constraints: Constraints): Boolean {
+        var result: HoradricResult
+        do {
+            result = relaxFixPoint(model, constraints)
+            if (result is HoradricResult.Match) {
+                merger.mergeConstraints(constraints, result.idA, result.idB)
+                merger.mergeModel(model, result.idA, result.idB)
+            }
+        } while (result is HoradricResult.Match)
+        return result is HoradricResult.Contradiction
     }
 
     private fun Model.copyModel(): Model {

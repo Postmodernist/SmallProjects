@@ -57,8 +57,8 @@ object Relations {
 
     private val variants: Set<Int> = Constraint.defaultVariants
 
-    val imRight = Relation(::imRightF, ::imLeftF)
-    val nextTo = Relation(::nextToF, ::nextToF)
+    val imRight = Relation("imRight", ::imRightF, "imLeft", ::imLeftF)
+    val nextTo = Relation("nextTo", ::nextToF, "nextTo", ::nextToF)
 
     private fun imRightF(v: Int): Set<Int> {
         return variants.intersect(setOf(v + 1))

@@ -28,7 +28,12 @@ class CookImpl(
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is Entry.RuleSet) {
                     for (rule in entry.rules) {
-                        val reciprocalRelation = Relation(rule.relation.g, rule.relation.f)
+                        val reciprocalRelation = Relation(
+                            rule.relation.gName,
+                            rule.relation.g,
+                            rule.relation.fName,
+                            rule.relation.f
+                        )
                         val reciprocalRule = Rule(reciprocalRelation, constraint.id)
                         val otherConstraint = get(rule.id)
                             ?: throw IllegalStateException("Constraint ${rule.id} not found")
