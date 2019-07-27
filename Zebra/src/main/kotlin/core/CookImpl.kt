@@ -9,15 +9,14 @@ import model.Constraint
 import model.Entry
 import model.Relation
 import model.Rule
-import java.util.ArrayList
-import java.util.HashSet
+import java.util.*
 
 class CookImpl : Cook {
 
     private lateinit var matcher: Matcher
     private lateinit var merger: Merger
 
-    private val constraints: Constraints = HashMap()
+    private val constraints: Constraints = TreeMap()
 
     fun inject(matcher: Matcher, merger: Merger) {
         this.matcher = matcher
@@ -72,7 +71,7 @@ class CookImpl : Cook {
 
     private fun Constraints.cookModel(): Model {
         println("> Cook model")
-        val model: Model = HashMap()
+        val model: Model = TreeMap()
         for ((id, constraint) in this) {
             val constraintValues =
                 ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)

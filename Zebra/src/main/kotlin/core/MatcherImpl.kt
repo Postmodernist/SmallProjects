@@ -1,7 +1,7 @@
 package core
 
-import interfaces.Matcher
 import Constraints
+import interfaces.Matcher
 import model.Entry
 
 class MatcherImpl : Matcher {

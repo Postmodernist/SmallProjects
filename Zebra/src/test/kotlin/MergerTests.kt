@@ -6,6 +6,8 @@ import model.Entry.None
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
+import java.util.*
+import kotlin.collections.HashSet
 
 class MergerTests {
 
@@ -24,7 +26,7 @@ class MergerTests {
 
     @Test
     fun test02() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(0), None, rule(imRight, 33), None, None, None),
             Constraint(2, None, value(1), None, None, None, None)
@@ -39,7 +41,7 @@ class MergerTests {
 
     @Test
     fun test03() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(0), None, rule(imRight, 33), None, None, None),
             Constraint(2, rule(nextTo, 3), value(1), None, None, None, None),
@@ -58,12 +60,12 @@ class MergerTests {
     @Test
     fun test04() {
         fun all(): HashSet<Int> = HashSet(Constraint.defaultVariants)
-        val model: Model = HashMap()
+        val model: Model = TreeMap()
         arrayOf(
             1 to arrayListOf(hashSetOf(0, 1), all(), all(), all(), all(), all()),
             2 to arrayListOf(hashSetOf(1, 2), all(), all(), all(), all(), all())
         ).forEach { model[it.first] = it.second }
-        val result: Model = HashMap()
+        val result: Model = TreeMap()
         arrayOf(
             1 to arrayListOf(hashSetOf(1), all(), all(), all(), all(), all())
         ).forEach { result[it.first] = it.second }
@@ -75,14 +77,14 @@ class MergerTests {
     @Test
     fun test05() {
         fun a(): HashSet<Int> = HashSet(Constraint.defaultVariants)
-        val model: Model = HashMap()
+        val model: Model = TreeMap()
         arrayOf(
             1 to arrayListOf(hashSetOf(0, 1), a(), a(), a(), a(), a()),
             2 to arrayListOf(hashSetOf(1), hashSetOf(2, 3, 4), a(), a(), a(), a()),
             3 to arrayListOf(hashSetOf(1, 2), a(), a(), a(), a(), a()),
             4 to arrayListOf(a(), a(), a(), a(), hashSetOf(0, 1), a())
         ).forEach { model[it.first] = it.second }
-        val result: Model = HashMap()
+        val result: Model = TreeMap()
         arrayOf(
             1 to arrayListOf(hashSetOf(0, 1), a(), a(), a(), a(), a()),
             2 to arrayListOf(hashSetOf(1), hashSetOf(2, 3, 4), a(), a(), hashSetOf(0, 1), a()),

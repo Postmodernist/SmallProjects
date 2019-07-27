@@ -32,7 +32,7 @@ class Constraint(val id: Int, vararg entries: Entry) {
     companion object {
 
         const val ENTRIES_SIZE = 6
-        private const val ENTRY_VARIANTS = 5
+        const val ENTRY_VARIANTS = 5
 
         val defaultVariants: Set<Int> = (List(ENTRY_VARIANTS) { it }).toSet()
     }

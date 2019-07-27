@@ -2,13 +2,15 @@ package core
 
 import Constraints
 import Model
-import interfaces.*
+import interfaces.Contradictor
+import interfaces.HoradricCube
+import interfaces.Matcher
+import interfaces.Relaxer
 import model.Constraint
 import model.Entry
 import model.Entry.*
 import results.HoradricResult
 import java.util.*
-import kotlin.collections.HashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -84,7 +86,7 @@ class HoradricCubeImpl : HoradricCube {
     }
 
     private fun Model.copyModel(): Model {
-        val modelCopy: Model = HashMap()
+        val modelCopy: Model = TreeMap()
         for ((id, constraintValues) in this) {
             val constraintValuesCopy =
                 ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
@@ -97,7 +99,7 @@ class HoradricCubeImpl : HoradricCube {
     }
 
     private fun Constraints.copyConstraints(): Constraints {
-        val constraintsCopy: Constraints = HashMap()
+        val constraintsCopy: Constraints = TreeMap()
         for ((id, constraint) in this) {
             val entriesCopy = Array<Entry>(Constraint.ENTRIES_SIZE) { None }
             for ((i, entry) in constraint.entries.withIndex()) {

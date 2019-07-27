@@ -1,7 +1,6 @@
 import model.Constraint
-import java.util.ArrayList
-import java.util.HashSet
+import java.util.*
 
-typealias Constraints = HashMap<Int, Constraint>
+typealias Constraints = TreeMap<Int, Constraint>
 
-typealias Model = HashMap<Int, ArrayList<HashSet<Int>>>
+typealias Model = TreeMap<Int, ArrayList<HashSet<Int>>>

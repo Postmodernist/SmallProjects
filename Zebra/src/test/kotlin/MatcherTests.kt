@@ -4,6 +4,7 @@ import model.Entry.None
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.util.*
 
 class MatcherTests {
 
@@ -11,7 +12,7 @@ class MatcherTests {
 
     @Test
     fun test01() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(1), None, None, None, None, None),
             Constraint(2, value(1), None, None, None, None, None)
@@ -22,7 +23,7 @@ class MatcherTests {
 
     @Test
     fun test02() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(1), None, None, None, None, None),
             Constraint(2, value(2), None, None, None, None, None)
@@ -33,7 +34,7 @@ class MatcherTests {
 
     @Test
     fun test03() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(5), None, None, None, None, None),
             Constraint(2, None, None, None, None, value(5), None),
@@ -46,7 +47,7 @@ class MatcherTests {
 
     @Test
     fun test04() {
-        val constraints: Constraints = HashMap()
+        val constraints: Constraints = TreeMap()
         arrayOf(
             Constraint(1, value(5), value(2), None, None, None, None),
             Constraint(2, None, None, None, None, value(5), None),

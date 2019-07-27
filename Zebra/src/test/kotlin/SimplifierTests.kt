@@ -1,15 +1,16 @@
-import org.junit.Assert.assertArrayEquals
-import org.junit.Test
 import Cigarettes.CHESTERFIELDS
 import Colors.*
 import Drinks.*
-import model.Entry.*
 import Nations.*
 import Pets.*
 import Relations.imRight
 import Relations.nextTo
 import di.Provider
 import model.Constraint
+import model.Entry.None
+import model.Entry.Value
+import org.junit.Assert.assertArrayEquals
+import org.junit.Test
 
 class SimplifierTests {
 
