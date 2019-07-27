@@ -74,7 +74,8 @@ object Relations {
 }
 
 fun main() {
-    val simplifier = Provider().provideSimplifier().apply {
+    val provider = Provider()
+    val (constraints, model) = provider.provideCook().apply {
         // ID, POSITION, COLOR, NATION, PET, DRINK, CIGARETTES
         add(Constraint(100, None, value(RED), value(ENGLISHMAN), None, None, None))
         add(Constraint(101, None, None, value(SPANIARD), value(DOG), None, None))
@@ -96,9 +97,10 @@ fun main() {
         add(Constraint(117, rule(nextTo, 116), None, value(NORWEGIAN), None, None, None))
         add(Constraint(118, None, None, None, value(ZEBRA), None, None))
         add(Constraint(119, None, None, None, None, value(WATER), None))
-    }.simplify()
+    }.prepare()
+    provider.provideSimplifier().simplify(constraints, model)
     println()
-    for ((_, c) in simplifier.constraints) {
+    for ((_, c) in constraints) {
         println(c.show())
     }
 }

@@ -1,17 +1,15 @@
 package core
 
-import interfaces.Merger
 import Constraints
-import model.Entry
 import Model
-import show
+import interfaces.Merger
+import model.Entry
 
 class MergerImpl : Merger {
 
     override fun mergeConstraints(constraints: Constraints, idA: Int, idB: Int) {
         val a = constraints[idA]!!
         val b = constraints[idB]!!
-        print("${a.show()} + ${b.show()} = ")
         for (k in a.entries.indices) {
             a.entries[k] = when (val entry = a.entries[k]) {
                 is Entry.None -> b.entries[k]
@@ -23,7 +21,6 @@ class MergerImpl : Merger {
                 }
             }
         }
-        println(a.show())
         constraints.remove(idB)
         constraints.updateRules(idB, idA)
     }

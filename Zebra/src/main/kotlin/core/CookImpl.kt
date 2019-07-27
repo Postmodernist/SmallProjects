@@ -17,10 +17,17 @@ class CookImpl(
     private val merger: Merger
 ) : Cook {
 
-    override fun prepare(constraints: Constraints): Model {
+    private val constraints: Constraints = HashMap()
+
+    override fun add(constraint: Constraint) {
+        constraints[constraint.id] = constraint
+    }
+
+    override fun prepare(): Pair<Constraints, Model> {
         constraints.addReciprocalRelations()
         constraints.mergeMatches()
-        return constraints.cookModel()
+        val model = constraints.cookModel()
+        return Pair(constraints, model)
     }
 
     private fun Constraints.addReciprocalRelations() {
@@ -38,7 +45,8 @@ class CookImpl(
                         val reciprocalRule = Rule(reciprocalRelation, constraint.id)
                         val otherConstraint = get(rule.id)
                             ?: throw IllegalStateException("Constraint ${rule.id} not found")
-                        otherConstraint.entries[i] = when (val otherEntry = otherConstraint.entries[i]) {
+                        val otherEntry = otherConstraint.entries[i]
+                        otherConstraint.entries[i] = when (otherEntry) {
                             is Entry.None -> Entry.RuleSet(hashSetOf(reciprocalRule))
                             is Entry.Value -> otherEntry
                             is Entry.RuleSet -> Entry.RuleSet(otherEntry.rules + reciprocalRule)

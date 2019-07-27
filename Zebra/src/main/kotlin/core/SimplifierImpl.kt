@@ -1,39 +1,26 @@
 package core
 
-import results.HoradricResult
-import interfaces.Cook
+import Constraints
+import Model
 import interfaces.HoradricCube
 import interfaces.Merger
 import interfaces.Simplifier
-import model.Constraint
-import Constraints
+import results.HoradricResult
 
 class SimplifierImpl(
-    private val cook: Cook,
     private val cube: HoradricCube,
     private val merger: Merger
 ) : Simplifier {
 
-    override val constraints: Constraints = HashMap()
-
-    override fun add(constraint: Constraint) {
-        constraints[constraint.id] = constraint
-    }
-
-    override fun simplify(): Simplifier {
-        val model = cook.prepare(constraints)
-        loop@ while (true) {
-            when (val result = cube.transmute(constraints, model)) {
-                is HoradricResult.Unchanged, HoradricResult.Modified ->
-                    break@loop
-                is HoradricResult.Contradiction ->
-                    throw IllegalStateException("Contradiction")
-                is HoradricResult.Match -> {
-                    merger.mergeConstraints(constraints, result.idA, result.idB)
-                    merger.mergeModel(model, result.idA, result.idB)
-                }
+    override fun simplify(constraints: Constraints, model: Model): HoradricResult {
+        var result: HoradricResult
+        do {
+            result = cube.transmute(constraints, model)
+            if (result is HoradricResult.Match) {
+                merger.mergeConstraints(constraints, result.idA, result.idB)
+                merger.mergeModel(model, result.idA, result.idB)
             }
-        }
-        return this
+        } while (result is HoradricResult.Match)
+        return result
     }
 }

@@ -151,14 +151,17 @@ class SimplifierTests {
     }
 
     private fun makeTest(title: String, block: TestData.() -> Unit) {
-        println("=== $title ===\n")
+        println("=== $title ===")
         val testData = TestData().apply { block() }
-        val simplifier = Provider().provideSimplifier().apply {
+        val provider = Provider()
+        val (constraints, model) = provider.provideCook().apply {
             testData.constraints.forEach { add(it) }
-        }.simplify()
-        simplifier.constraints.forEach { (_, c) -> println(c.show()) }
+        }.prepare()
+        provider.provideSimplifier().simplify(constraints, model)
         println()
-        val result = simplifier.constraints.map { (_, c) ->
+        constraints.forEach { (_, c) -> println(c.show()) }
+        println()
+        val result = constraints.map { (_, c) ->
             c.entries.map { e -> if (e is Value) e.v else -1 }.toTypedArray()
         }.toTypedArray()
         assertArrayEquals(testData.expected, result)

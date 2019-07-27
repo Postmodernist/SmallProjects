@@ -2,8 +2,11 @@ package interfaces
 
 import Constraints
 import Model
+import model.Constraint
 
 interface Cook {
 
-    fun prepare(constraints: Constraints): Model
+    fun add(constraint: Constraint)
+
+    fun prepare(): Pair<Constraints, Model>
 }

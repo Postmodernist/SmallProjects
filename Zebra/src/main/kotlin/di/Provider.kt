@@ -9,7 +9,9 @@ class Provider {
     private val merger: Merger = MergerImpl()
     private val cook: Cook = CookImpl(matcher, merger)
     private val horadricCube: HoradricCube = HoradricCubeImpl(matcher, merger)
-    private val simplifier: Simplifier = SimplifierImpl(cook, horadricCube, merger)
+    private val simplifier: Simplifier = SimplifierImpl(horadricCube, merger)
+
+    fun provideCook(): Cook = cook
 
     fun provideSimplifier(): Simplifier = simplifier
 

@@ -1,13 +1,10 @@
 package interfaces
 
-import model.Constraint
 import Constraints
+import Model
+import results.HoradricResult
 
 interface Simplifier {
 
-    val constraints: Constraints
-
-    fun add(constraint: Constraint)
-
-    fun simplify(): Simplifier
+    fun simplify(constraints: Constraints, model: Model): HoradricResult
 }
