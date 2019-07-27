@@ -2,11 +2,17 @@ package results
 
 sealed class HoradricResult {
 
-    object Contradiction : HoradricResult()
+    object Contradiction : HoradricResult() {
+        override fun toString(): String = "Contradiction"
+    }
 
-    class Match(val idA: Int, val idB: Int) : HoradricResult()
+    data class Match(val idA: Int, val idB: Int) : HoradricResult()
 
-    object Modified : HoradricResult()
+    object Modified : HoradricResult() {
+        override fun toString(): String = "Modified"
+    }
 
-    object Unchanged : HoradricResult()
+    object Unchanged : HoradricResult() {
+        override fun toString(): String = "Unchanged"
+    }
 }

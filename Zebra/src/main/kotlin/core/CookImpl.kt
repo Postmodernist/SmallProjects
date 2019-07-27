@@ -12,12 +12,17 @@ import model.Rule
 import java.util.ArrayList
 import java.util.HashSet
 
-class CookImpl(
-    private val matcher: Matcher,
-    private val merger: Merger
-) : Cook {
+class CookImpl : Cook {
+
+    private lateinit var matcher: Matcher
+    private lateinit var merger: Merger
 
     private val constraints: Constraints = HashMap()
+
+    fun inject(matcher: Matcher, merger: Merger) {
+        this.matcher = matcher
+        this.merger = merger
+    }
 
     override fun add(constraint: Constraint) {
         constraints[constraint.id] = constraint

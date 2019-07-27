@@ -5,11 +5,21 @@ import interfaces.*
 
 class Provider {
 
+    private val contradictor: Contradictor = ContradictorImpl()
+    private val cook: Cook = CookImpl()
+    private val horadricCube: HoradricCube = HoradricCubeImpl()
     private val matcher: Matcher = MatcherImpl()
     private val merger: Merger = MergerImpl()
-    private val cook: Cook = CookImpl(matcher, merger)
-    private val horadricCube: HoradricCube = HoradricCubeImpl(matcher, merger)
-    private val simplifier: Simplifier = SimplifierImpl(horadricCube, merger)
+    private val relaxer: Relaxer = RelaxerImpl()
+    private val simplifier: Simplifier = SimplifierImpl()
+
+    init {
+        (contradictor as ContradictorImpl).inject(merger, relaxer)
+        (cook as CookImpl).inject(matcher, merger)
+        (horadricCube as HoradricCubeImpl).inject(matcher, relaxer, contradictor)
+        (simplifier as SimplifierImpl).inject(horadricCube, merger)
+        (relaxer as RelaxerImpl).inject(matcher)
+    }
 
     fun provideCook(): Cook = cook
 
