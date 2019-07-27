@@ -97,6 +97,7 @@ fun main() {
         add(Constraint(118, None, None, None, value(ZEBRA), None, None))
         add(Constraint(119, None, None, None, None, value(WATER), None))
     }.simplify()
+    println()
     for ((_, c) in simplifier.constraints) {
         println(c.show())
     }

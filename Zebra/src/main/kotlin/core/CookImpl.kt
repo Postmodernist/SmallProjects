@@ -24,6 +24,7 @@ class CookImpl(
     }
 
     private fun Constraints.addReciprocalRelations() {
+        println("> Add reciprocal relations")
         for (constraint in values) {
             for ((i, entry) in constraint.entries.withIndex()) {
                 if (entry is Entry.RuleSet) {
@@ -57,6 +58,7 @@ class CookImpl(
     }
 
     private fun Constraints.cookModel(): Model {
+        println("> Cook model")
         val model: Model = HashMap()
         for ((id, constraint) in this) {
             val constraintValues =
