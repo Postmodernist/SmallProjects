@@ -59,7 +59,7 @@ class SimplifierImpl : Simplifier {
         for ((id, fits) in fitsMap) {
             val idsToRemove = ArrayList<Int>()
             for (fit in fits) {
-                if (!fitsMap[fit]!!.contains(id)) {
+                if (id !in fitsMap[fit]!!) {
                     idsToRemove.add(fit)
                 }
             }
@@ -106,6 +106,6 @@ class SimplifierImpl : Simplifier {
                 }
             }
         }
-        return refs.contains(other.id)
+        return other.id in refs
     }
 }

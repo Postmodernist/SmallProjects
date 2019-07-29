@@ -2,6 +2,7 @@ package core
 
 import Constraints
 import interfaces.Matcher
+import model.Constraint
 import model.Entry
 
 class MatcherImpl : Matcher {
@@ -39,7 +40,7 @@ class MatcherImpl : Matcher {
     private fun Constraints.match(idA: Int, idB: Int): Boolean {
         val a = get(idA)!!
         val b = get(idB)!!
-        for (k in a.entries.indices) {
+        for (k in 0 until Constraint.ENTRIES_SIZE) {
             val entryA = a.entries[k]
             val entryB = b.entries[k]
             if (entryA is Entry.Value && entryB is Entry.Value && entryA.v == entryB.v) return true

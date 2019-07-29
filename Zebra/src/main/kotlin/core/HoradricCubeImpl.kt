@@ -2,29 +2,25 @@ package core
 
 import Constraints
 import Model
-import interfaces.Contradictor
-import interfaces.HoradricCube
-import interfaces.Matcher
-import interfaces.Relaxer
-import model.Constraint
-import model.Entry
-import model.Entry.*
+import interfaces.*
+import model.Entry.Value
 import results.HoradricResult
 import java.util.*
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.set
 
 class HoradricCubeImpl : HoradricCube {
 
     private lateinit var matcher: Matcher
     private lateinit var relaxer: Relaxer
     private lateinit var contradictor: Contradictor
+    private lateinit var copier: Copier
 
-    fun inject(matcher: Matcher, relaxer: Relaxer, contradictor: Contradictor) {
+    fun inject(matcher: Matcher, relaxer: Relaxer, contradictor: Contradictor, copier: Copier) {
         this.matcher = matcher
         this.relaxer = relaxer
         this.contradictor = contradictor
+        this.copier = copier
     }
 
     override fun transmute(constraints: Constraints, model: Model): HoradricResult {
@@ -58,8 +54,8 @@ class HoradricCubeImpl : HoradricCube {
                     if (entryValues.size < 2) throw IllegalStateException("Too few entry values")
                     val valuesToRemove = HashSet<Int>()
                     for (v in entryValues) {
-                        val constraintsCopy = constraints.copyConstraints()
-                        val modelCopy = model.copyModel()
+                        val constraintsCopy = copier.copyConstraints(constraints)
+                        val modelCopy = copier.copyModel(model)
                         constraintsCopy[id]!!.entries[i] = Value(v)
                         modelCopy[id]!![i] = hashSetOf(v)
                         if (contradictor.checkContradictions(constraintsCopy, modelCopy)) {
@@ -83,34 +79,5 @@ class HoradricCubeImpl : HoradricCube {
             }
         }
         return if (modified) HoradricResult.Modified else HoradricResult.Unchanged
-    }
-
-    private fun Model.copyModel(): Model {
-        val modelCopy: Model = TreeMap()
-        for ((id, constraintValues) in this) {
-            val constraintValuesCopy =
-                ArrayList<HashSet<Int>>(Constraint.ENTRIES_SIZE)
-            for (entryValues in constraintValues) {
-                constraintValuesCopy.add(HashSet(entryValues))
-            }
-            modelCopy[id] = constraintValuesCopy
-        }
-        return modelCopy
-    }
-
-    private fun Constraints.copyConstraints(): Constraints {
-        val constraintsCopy: Constraints = TreeMap()
-        for ((id, constraint) in this) {
-            val entriesCopy = Array<Entry>(Constraint.ENTRIES_SIZE) { None }
-            for ((i, entry) in constraint.entries.withIndex()) {
-                entriesCopy[i] = when (entry) {
-                    is None -> None
-                    is Value -> Value(entry.v)
-                    is RuleSet -> RuleSet(entry.rules)
-                }
-            }
-            constraintsCopy[id] = Constraint(id, *entriesCopy)
-        }
-        return constraintsCopy
     }
 }

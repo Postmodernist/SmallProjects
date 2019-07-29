@@ -3,5 +3,5 @@ import Constraints
 
 interface Reducer {
 
-    fun reduce(constraints: Constraints)
+    fun reduce(constraints: Constraints): Constraints?
 }

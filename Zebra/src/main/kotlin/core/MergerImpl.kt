@@ -3,6 +3,7 @@ package core
 import Constraints
 import Model
 import interfaces.Merger
+import model.Constraint
 import model.Entry
 
 class MergerImpl : Merger {
@@ -10,7 +11,7 @@ class MergerImpl : Merger {
     override fun mergeConstraints(constraints: Constraints, idA: Int, idB: Int) {
         val a = constraints[idA]!!
         val b = constraints[idB]!!
-        for (k in a.entries.indices) {
+        for (k in 0 until Constraint.ENTRIES_SIZE) {
             a.entries[k] = when (val entry = a.entries[k]) {
                 is Entry.None -> b.entries[k]
                 is Entry.Value -> entry
