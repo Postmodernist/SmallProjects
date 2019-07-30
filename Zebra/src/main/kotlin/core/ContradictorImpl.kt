@@ -6,6 +6,7 @@ import interfaces.Contradictor
 import interfaces.Merger
 import interfaces.Relaxer
 import results.HoradricResult
+import results.HoradricResult.*
 
 class ContradictorImpl : Contradictor {
 
@@ -21,11 +22,10 @@ class ContradictorImpl : Contradictor {
         var result: HoradricResult
         do {
             result = relaxer.relax(constraints, model)
-            if (result is HoradricResult.Match) {
-                merger.mergeConstraints(constraints, result.idA, result.idB)
-                merger.mergeModel(model, result.idA, result.idB)
+            if (result is Match) {
+                merger.merge(constraints, model, result.idA, result.idB)
             }
-        } while (result is HoradricResult.Match)
-        return result is HoradricResult.Contradiction
+        } while (result is Match)
+        return result is Contradiction
     }
 }

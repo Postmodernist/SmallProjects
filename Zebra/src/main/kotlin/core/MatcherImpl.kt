@@ -43,7 +43,9 @@ class MatcherImpl : Matcher {
         for (k in 0 until Constraint.ENTRIES_SIZE) {
             val entryA = a.entries[k]
             val entryB = b.entries[k]
-            if (entryA is Entry.Value && entryB is Entry.Value && entryA.v == entryB.v) return true
+            if (entryA is Entry.Value && entryB is Entry.Value && entryA.v == entryB.v) {
+                return true
+            }
         }
         return false
     }

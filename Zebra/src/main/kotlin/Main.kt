@@ -98,8 +98,7 @@ fun main() {
         add(Constraint(118, None, None, None, value(ZEBRA), None, None))
         add(Constraint(119, None, None, None, None, value(WATER), None))
     }.prepare()
-//    provider.provideSimplifier().simplify(constraints, model)
-    val reduced = provider.provideReducer().reduce(constraints)
+    val reduced = provider.provideReducer().reduce(constraints, model)
     println()
     if (reduced == null) {
         println("Can't reduce")
