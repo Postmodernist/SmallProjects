@@ -1,5 +1,6 @@
 import Relations.imRight
 import Relations.nextTo
+import core.MergerImpl
 import di.Provider
 import model.Constraint
 import model.Entry.None
@@ -11,7 +12,7 @@ import kotlin.collections.HashSet
 
 class MergerTests {
 
-    private val merger = Provider().provideMerger()
+    private val merger = Provider().provideMerger() as MergerImpl
 
     @Test
     fun test01() {

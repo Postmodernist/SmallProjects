@@ -3,8 +3,6 @@ package core
 import Constraints
 import Model
 import interfaces.Cook
-import interfaces.Matcher
-import interfaces.Merger
 import model.Constraint
 import model.Entry
 import model.Relation
@@ -13,15 +11,7 @@ import java.util.*
 
 class CookImpl : Cook {
 
-    private lateinit var matcher: Matcher
-    private lateinit var merger: Merger
-
     private val constraints: Constraints = TreeMap()
-
-    fun inject(matcher: Matcher, merger: Merger) {
-        this.matcher = matcher
-        this.merger = merger
-    }
 
     override fun add(constraint: Constraint) {
         constraints[constraint.id] = constraint
@@ -29,7 +19,6 @@ class CookImpl : Cook {
 
     override fun prepare(): Pair<Constraints, Model> {
         constraints.addReciprocalRelations()
-        constraints.mergeMatches()
         val model = constraints.cookModel()
         return Pair(constraints, model)
     }
@@ -58,14 +47,6 @@ class CookImpl : Cook {
                     }
                 }
             }
-        }
-    }
-
-    private fun Constraints.mergeMatches() {
-        println("> Merge matches")
-        while (true) {
-            val match = matcher.findMatch(this) ?: break
-            merger.mergeConstraints(this, match.first, match.second)
         }
     }
 
