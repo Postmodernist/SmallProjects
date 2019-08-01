@@ -25,7 +25,7 @@ interface Constraint<K, V> {
      *         broken or not
      */
     operator fun invoke(
-        variables: ArrayList<K>,
+        variables: List<K>,
         domains: HashMap<K, Domain<V>>,
         assignments: HashMap<K, V>,
         forwardcheck: Boolean = false
@@ -49,7 +49,7 @@ interface Constraint<K, V> {
      *        constraints affecting the given variables.
      */
     fun preprocess(
-        variables: ArrayList<K>,
+        variables: List<K>,
         domains: HashMap<K, Domain<V>>,
         constraints: ArrayList<ConstraintEnv<K, V>>,
         vconstraints: HashMap<K, ArrayList<ConstraintEnv<K, V>>>
@@ -82,7 +82,7 @@ interface Constraint<K, V> {
      *         broken or not.
      */
     fun forwardCheck(
-        variables: ArrayList<K>,
+        variables: List<K>,
         domains: HashMap<K, Domain<V>>,
         assignments: HashMap<K, V>
     ): Boolean {
