@@ -1,6 +1,4 @@
-package interfaces
-
-import core.Variable
+package core
 
 interface Solver<V> : Iterable<Map<Variable, V>> {
 
