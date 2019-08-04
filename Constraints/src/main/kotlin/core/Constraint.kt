@@ -3,7 +3,7 @@ package core
 /**
  * Interface for constraints.
  */
-interface Constraint<K, V> {
+interface Constraint<V, D> {
 
     /**
      * Perform the constraint checking.
@@ -25,9 +25,9 @@ interface Constraint<K, V> {
      *         broken or not
      */
     operator fun invoke(
-        variables: List<K>,
-        domains: HashMap<K, Domain<V>>,
-        assignments: HashMap<K, V>,
+        variables: List<V>,
+        domains: HashMap<V, Domain<D>>,
+        assignments: HashMap<V, D>,
         forwardcheck: Boolean = false
     ): Boolean
 
@@ -49,10 +49,10 @@ interface Constraint<K, V> {
      *        constraints affecting the given variables.
      */
     fun preprocess(
-        variables: List<K>,
-        domains: HashMap<K, Domain<V>>,
-        constraints: ArrayList<ConstraintEnv<K, V>>,
-        vconstraints: HashMap<K, ArrayList<ConstraintEnv<K, V>>>
+        variables: List<V>,
+        domains: HashMap<V, Domain<D>>,
+        constraints: ArrayList<ConstraintEnv<V, D>>,
+        vconstraints: HashMap<V, ArrayList<ConstraintEnv<V, D>>>
     ) {
         if (variables.size == 1) {
             val variable = variables[0]
@@ -82,11 +82,11 @@ interface Constraint<K, V> {
      *         broken or not.
      */
     fun forwardCheck(
-        variables: List<K>,
-        domains: HashMap<K, Domain<V>>,
-        assignments: HashMap<K, V>
+        variables: List<V>,
+        domains: HashMap<V, Domain<D>>,
+        assignments: HashMap<V, D>
     ): Boolean {
-        var unassignedVariable: K? = null
+        var unassignedVariable: V? = null
         for (variable in variables) {
             if (variable !in assignments) {
                 if (unassignedVariable == null) {

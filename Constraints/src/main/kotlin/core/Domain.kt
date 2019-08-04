@@ -8,9 +8,9 @@ package core
  *
  * @param set Set of values that the given variables may assume.
  */
-class Domain<V>(set: Set<V>) : ArrayList<V>(set) {
+class Domain<D>(set: Set<D>) : ArrayList<D>(set) {
 
-    private val hidden = ArrayList<V>()
+    private val hidden = ArrayList<D>()
     private val states = ArrayList<Int>()
 
     /**
@@ -55,7 +55,7 @@ class Domain<V>(set: Set<V>) : ArrayList<V>(set) {
      *
      * @param value Object currently available in the domain.
      */
-    fun hideValue(value: V) {
+    fun hideValue(value: D) {
         remove(value)
         hidden.add(value)
     }
