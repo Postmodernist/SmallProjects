@@ -7,26 +7,33 @@ import core.Domain
  * Constraint which wraps a function defining the constraint logic.
  *
  * Examples:
+ * ```
+ *     problem = Problem()
+ *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+ *     fun func(args: List<Int>) = args[1]!! > args[2]!!
+ *     problem.addConstraint(func, listOf("a", "b"))
+ *     problem.getSolution()
+ * ```
+ * Output:
+ * ```
+ *     {a=1, b=2}
  *
- * > problem = Problem()
- * > problem.addVariables(listOf("a", "b"), listOf(1, 2))
- * > fun func(a: Int, b: Int) = b > a
- * > problem.addConstraint(func, listOf("a", "b"))
- * > problem.getSolution()
- * {a=1, b=2}
- *
- * > problem = Problem()
- * > problem.addVariables(listOf("a", "b"), listOf(1, 2))
- * > fun func(a: Int, b: Int) = b > a
- * > problem.addConstraint(FunctionConstraint(func), listOf("a", "b"))
- * > problem.getSolution()
- * {a=1, b=2}
+ *     problem = Problem()
+ *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+ *     fun func(args: List<Int>) = args[1]!! > args[2]!!
+ *     problem.addConstraint(FunctionConstraint(func), listOf("a", "b"))
+ *     problem.getSolution()
+ * ```
+ * Output:
+ * ```
+ *     {a=1, b=2}
+ * ```
  *
  * @param func Function wrapped and queried for constraint logic.
  * @param assigned Whether the function may receive unassigned
  *        variables or not.
  */
-class FunctionConstraint<V, D>(
+class FunctionConstraint<V : Any, D : Any>(
     private val func: (List<D?>) -> Boolean,
     private val assigned: Boolean = true
 ) : Constraint<V, D> {

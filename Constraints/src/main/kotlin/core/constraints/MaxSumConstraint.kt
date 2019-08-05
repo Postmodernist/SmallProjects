@@ -1,6 +1,8 @@
 package core.constraints
 
 import core.*
+import core.constraints.MaxSumConstraint.Companion.DOUBLE_PRECISION
+import core.constraints.MaxSumConstraint.Companion.FLOAT_PRECISION
 
 /**
  * Constraint enforcing that values of given variables sum up to
@@ -8,34 +10,35 @@ import core.*
  * for [Double]s -- up to [DOUBLE_PRECISION].
  *
  * Example:
- *
- * > problem = Problem()
- * > problem.addVariables(listOf("a", "b"), listOf(1, 2))
- * > problem.addConstraint(MaxSumConstraint(3))
- * > problem.getSolutions().toList()
- * [[(a, 1), (b, 1)], [(a, 1), (b, 2)], [(a, 2), (b, 1)]]
+ * ```
+ *     problem = Problem()
+ *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+ *     problem.addConstraint(MaxSumConstraint(3))
+ *     problem.getSolutions()
+ * ```
+ * Output:
+ * ```
+ *     [{a=1, b=1}, {a=1, b=2}, {a=2, b=1}]
+ * ```
  *
  * @param maxSum Value to be considered as the maximum sum.
  */
-class MaxSumConstraint<V, D : Number>(
+class MaxSumConstraint<V : Any, D : Number>(
     private val maxSum: D
 ) : Constraint<V, D> {
 
-    @Suppress("UNCHECKED_CAST")
     override fun invoke(
         variables: List<V>,
         domains: HashMap<V, Domain<D>>,
         assignments: HashMap<V, D>,
         forwardcheck: Boolean
     ): Boolean {
-        var sum: D = domains.values.first()[0].zero()
-        if (sum.javaClass != maxSum.javaClass) {
-            throw IllegalStateException("Wrong type of maxSum: ${maxSum.javaClass}")
-        }
+        var sum: D = maxSum.zero() // get the right type of zero
         for (v in variables) {
             val value = assignments[v]
             if (value != null) {
-                sum = (sum + value) as D
+                sum += value
+                @Suppress("UNCHECKED_CAST")
                 sum = when (sum) {
                     is Float -> sum.toDouble().round(FLOAT_PRECISION).toFloat() as D
                     is Double -> sum.round(DOUBLE_PRECISION) as D

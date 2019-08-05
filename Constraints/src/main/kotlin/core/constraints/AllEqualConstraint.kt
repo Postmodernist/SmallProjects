@@ -7,14 +7,18 @@ import core.Domain
  * Constraint enforcing that values of all given variables are equal.
  *
  * Example:
- *
- * > problem = Problem()
- * > problem.addVariables(listOf("a", "b"), listOf(1, 2))
- * > problem.addConstraint(AllEqualConstraint())
- * > problem.getSolutions().toList()
- * [[(a, 1), (b, 1)], [(a, 2), (b, 2)]]
+ * ```
+ *     problem = Problem()
+ *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+ *     problem.addConstraint(AllEqualConstraint())
+ *     problem.getSolutions()
+ * ```
+ * Output:
+ * ```
+ *     [{a=1, b=1}, {a=2, b=2}]
+ * ```
  */
-class AllEqualConstraint<V, D> : Constraint<V, D> {
+class AllEqualConstraint<V : Any, D : Any> : Constraint<V, D> {
 
     override fun invoke(
         variables: List<V>,

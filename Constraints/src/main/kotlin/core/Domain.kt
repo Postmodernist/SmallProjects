@@ -8,7 +8,7 @@ package core
  *
  * @param set Set of values that the given variables may assume.
  */
-class Domain<D>(set: Set<D>) : ArrayList<D>(set) {
+class Domain<D : Any>(set: Set<D>) : ArrayList<D>(set) {
 
     private val hidden = ArrayList<D>()
     private val states = ArrayList<Int>()

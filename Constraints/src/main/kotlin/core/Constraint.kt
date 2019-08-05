@@ -3,7 +3,7 @@ package core
 /**
  * Interface for constraints.
  */
-interface Constraint<V, D> {
+interface Constraint<V : Any, D : Any> {
 
     /**
      * Perform the constraint checking.

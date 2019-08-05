@@ -10,7 +10,7 @@ fun <D : Number> D.zero(): D = when (this) {
     is Long -> 0L as D
     is Float -> 0.0f as D
     is Double -> 0.0 as D
-    else -> throw IllegalArgumentException("Not a number")
+    else -> throw IllegalArgumentException("Unsupported number type")
 }
 
 fun Double.round(n: Int): Double {
@@ -19,62 +19,33 @@ fun Double.round(n: Int): Double {
     return round(this * m) / m
 }
 
-operator fun Number.plus(other: Number): Number = when (this) {
+@Suppress("UNCHECKED_CAST")
+operator fun <D : Number> D.plus(other: D): D = when (this) {
     is Byte -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Byte -> plus(other).toByte() as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
     is Short -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Short -> plus(other).toShort() as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
     is Int -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Int -> plus(other) as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
     is Long -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Long -> plus(other) as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
     is Float -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Float -> plus(other) as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
     is Double -> when (other) {
-        is Byte -> plus(other)
-        is Short -> plus(other)
-        is Int -> plus(other)
-        is Long -> plus(other)
-        is Float -> plus(other)
-        is Double -> plus(other)
-        else -> throw IllegalArgumentException("Not a number")
+        is Double -> plus(other) as D
+        else -> throw IllegalArgumentException("Operands types mismatch")
     }
-    else -> throw IllegalArgumentException("Not a number")
+    else -> throw IllegalArgumentException("Unsupported number type")
 }
 
 operator fun Number.compareTo(other: Number): Int = when (this) {
@@ -85,7 +56,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
     is Short -> when (other) {
         is Byte -> compareTo(other)
@@ -94,7 +65,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
     is Int -> when (other) {
         is Byte -> compareTo(other)
@@ -103,7 +74,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
     is Long -> when (other) {
         is Byte -> compareTo(other)
@@ -112,7 +83,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
     is Float -> when (other) {
         is Byte -> compareTo(other)
@@ -121,7 +92,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
     is Double -> when (other) {
         is Byte -> compareTo(other)
@@ -130,7 +101,7 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         is Long -> compareTo(other)
         is Float -> compareTo(other)
         is Double -> compareTo(other)
-        else -> throw IllegalArgumentException("Not a number")
+        else -> throw IllegalArgumentException("Unsupported number type")
     }
-    else -> throw IllegalArgumentException("Not a number")
+    else -> throw IllegalArgumentException("Unsupported number type")
 }

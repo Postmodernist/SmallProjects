@@ -7,14 +7,18 @@ import core.Domain
  * Constraint enforcing that values of all given variables are different.
  *
  * Example:
- *
- * > problem = Problem()
- * > problem.addVariables(listOf("a", "b"), listOf(1, 2))
- * > problem.addConstraint(AllDifferentConstraint())
- * > problem.getSolutions().toList()
- * [[(a, 1), (b, 2)], [(a, 2), (b, 1)]]
+ * ```
+ *     problem = Problem()
+ *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+ *     problem.addConstraint(AllDifferentConstraint())
+ *     problem.getSolutions()
+ * ```
+ * Output:
+ * ```
+ *     [{a=1, b=2}, {a=2, b=1}]
+ * ```
  */
-class AllDifferentConstraint<V, D> : Constraint<V, D> {
+class AllDifferentConstraint<V : Any, D : Any> : Constraint<V, D> {
 
     override fun invoke(
         variables: List<V>,

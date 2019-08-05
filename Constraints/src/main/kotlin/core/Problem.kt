@@ -1,7 +1,4 @@
 package core
 
 class Problem {
-
-
-
 }
