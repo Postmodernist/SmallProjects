@@ -7,6 +7,7 @@ fun main() {
     val job = scope.launch {
         while (isActive) {
             print(". ")
+            @Suppress("BlockingMethodInNonBlockingContext")
             Thread.sleep(500)
         }
     }
