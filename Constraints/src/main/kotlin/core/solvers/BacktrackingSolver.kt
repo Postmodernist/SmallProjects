@@ -58,8 +58,8 @@ class BacktrackingSolver<V : Any, D : Any>(
         constraints: ArrayList<ConstraintEnv<V, D>>,
         vconstraints: HashMap<V, ArrayList<ConstraintEnv<V, D>>>
     ): Map<V, D>? {
-        val iter = getSolutionSequence(domains, constraints, vconstraints).iterator()
-        return if (iter.hasNext()) iter.next() else null
+        val solutions = getSolutionSequence(domains, constraints, vconstraints)
+        return solutions.first()
     }
 
     override fun getSolutions(
@@ -85,7 +85,11 @@ class BacktrackingSolver<V : Any, D : Any>(
 
         while (true) {
             var found = false
-            for (v in prioritizedVariables(domains, vconstraints)) {
+            // Mix the Degree and Minimum Remaining Values (MRV) heuristics.
+            val prioritizedVariables = ArrayList(domains.keys).apply {
+                sortWith(compareBy({ -vconstraints[it]!!.size }, { domains[it]!!.size }))
+            }
+            for (v in prioritizedVariables) {
                 if (v !in assignments) {
                     // Found unassigned variable.
                     variable = v
@@ -161,20 +165,7 @@ class BacktrackingSolver<V : Any, D : Any>(
         }
     }
 
-    private fun prioritizedVariables(
-        domains: HashMap<V, Domain<D>>,
-        vconstraints: HashMap<V, ArrayList<ConstraintEnv<V, D>>>
-    ): List<V> {
-        // Mix the Degree and Minimum Remaining Values (MRV) heuristics.
-        val lst = ArrayList<Triple<Int, Int, V>>()
-        for (v in domains.keys) {
-            lst.add(Triple(-vconstraints[v]!!.size, domains[v]!!.size, v))
-        }
-        lst.sortWith(compareBy({ it.first }, { it.second }))
-        return lst.map { it.third }
-    }
-
-    data class QueueElement<V : Any, D : Any>(
+    private data class QueueElement<V : Any, D : Any>(
         val variable: V,
         val values: ArrayList<D>,
         val pushDomains: ArrayList<Domain<D>>?
