@@ -4,7 +4,7 @@ import kotlinx.coroutines.*
 
 class ExceptionInCoroutine {
 
-    private val handler = CoroutineExceptionHandler { coroutineContext, throwable ->
+    private val handler = CoroutineExceptionHandler { _, throwable ->
         println("Catch $throwable")
     }
 
