@@ -53,4 +53,6 @@ class FunctionConstraint<V : Any, D : Any>(
             func(args)
         }
     }
+
+    override fun toString(): String = "FunctionConstraint@${func.hashCode()}"
 }

@@ -1,6 +1,6 @@
 package core.solvers
 
-import core.ConstraintEnv
+import utils.ConstraintEnv
 import core.Domain
 import core.Solver
 import java.util.*
@@ -164,6 +164,8 @@ class BacktrackingSolver<V : Any, D : Any>(
             queue.offer(QueueElement(variable, values, pushDomains))
         }
     }
+
+    override fun toString(): String  = "BacktrackingSolver"
 
     private data class QueueElement<V : Any, D : Any>(
         val variable: V,

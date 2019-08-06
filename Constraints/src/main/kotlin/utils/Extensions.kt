@@ -1,9 +1,10 @@
-package core
+package utils
 
+import core.Domain
 import kotlin.math.round
 
 @Suppress("UNCHECKED_CAST")
-fun <D : Number> D.zero(): D = when (this) {
+internal fun <D : Number> D.zero(): D = when (this) {
     is Byte -> 0 as D
     is Short -> 0 as D
     is Int -> 0 as D
@@ -13,14 +14,14 @@ fun <D : Number> D.zero(): D = when (this) {
     else -> throw IllegalArgumentException("Unsupported number type")
 }
 
-fun Double.round(n: Int): Double {
+internal fun Double.round(n: Int): Double {
     var m = 1.0
     repeat(n) { m *= 10 }
     return round(this * m) / m
 }
 
 @Suppress("UNCHECKED_CAST")
-operator fun <D : Number> D.plus(other: D): D = when (this) {
+internal operator fun <D : Number> D.plus(other: D): D = when (this) {
     is Byte -> when (other) {
         is Byte -> plus(other).toByte() as D
         else -> throw IllegalArgumentException("Operands types mismatch")
@@ -48,7 +49,7 @@ operator fun <D : Number> D.plus(other: D): D = when (this) {
     else -> throw IllegalArgumentException("Unsupported number type")
 }
 
-operator fun Number.compareTo(other: Number): Int = when (this) {
+internal operator fun Number.compareTo(other: Number): Int = when (this) {
     is Byte -> when (other) {
         is Byte -> compareTo(other)
         is Short -> compareTo(other)
@@ -104,4 +105,12 @@ operator fun Number.compareTo(other: Number): Int = when (this) {
         else -> throw IllegalArgumentException("Unsupported number type")
     }
     else -> throw IllegalArgumentException("Unsupported number type")
+}
+
+internal fun <V : Any,D : Any> HashMap<V, Domain<D>>.copy(): HashMap<V, Domain<D>> {
+    val result = HashMap<V, Domain<D>>()
+    for (entry in entries) {
+        result[entry.key] = Domain(entry.value.toSet())
+    }
+    return result
 }

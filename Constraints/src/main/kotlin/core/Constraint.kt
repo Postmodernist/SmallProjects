@@ -1,5 +1,7 @@
 package core
 
+import utils.ConstraintEnv
+
 /**
  * Interface for constraints.
  */

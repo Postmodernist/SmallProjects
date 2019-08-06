@@ -52,4 +52,6 @@ class AllEqualConstraint<V : Any, D : Any> : Constraint<V, D> {
         }
         return true
     }
+
+    override fun toString(): String = "AllEqualConstraint"
 }

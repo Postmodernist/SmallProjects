@@ -3,6 +3,7 @@ package core.constraints
 import core.*
 import core.constraints.MaxSumConstraint.Companion.DOUBLE_PRECISION
 import core.constraints.MaxSumConstraint.Companion.FLOAT_PRECISION
+import utils.*
 
 /**
  * Constraint enforcing that values of given variables sum up to
@@ -83,6 +84,8 @@ class MaxSumConstraint<V : Any, D : Number>(
             }
         }
     }
+
+    override fun toString(): String = "MaxSumConstraint@$maxSum"
 
     companion object {
         const val FLOAT_PRECISION = 4
