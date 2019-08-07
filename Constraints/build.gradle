@@ -16,6 +16,7 @@ dependencies {
     implementation 'com.google.dagger:dagger:2.24'
     kapt 'com.google.dagger:dagger-compiler:2.24'
     testImplementation 'junit:junit:4.12'
+    testImplementation 'com.google.truth:truth:1.0'
 }
 
 compileKotlin {

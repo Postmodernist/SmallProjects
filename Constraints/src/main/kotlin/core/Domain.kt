@@ -1,5 +1,8 @@
 package core
 
+import java.util.*
+import kotlin.collections.ArrayList
+
 /**
  * Class used to control possible values for variables
  *
@@ -11,7 +14,7 @@ package core
 class Domain<D : Any>(set: Set<D>) : ArrayList<D>(set) {
 
     private val hidden = ArrayList<D>()
-    private val states = ArrayList<Int>()
+    private val states: Deque<Int> = ArrayDeque()
 
     /**
      * Reset to the original domain state, including all possible values.
@@ -29,7 +32,7 @@ class Domain<D : Any>(set: Set<D>) : ArrayList<D>(set) {
      * is popped from the stack.
      */
     fun pushState() {
-        states.add(size)
+        states.push(size)
     }
 
     /**
@@ -39,9 +42,9 @@ class Domain<D : Any>(set: Set<D>) : ArrayList<D>(set) {
      * again.
      */
     fun popState() {
-        val diff = states.removeAt(states.lastIndex) - size
+        val diff = states.pop() - size
         if (diff != 0) {
-            addAll(hidden.subList(hidden.size - diff, hidden.lastIndex))
+            addAll(hidden.subList(hidden.size - diff, hidden.size))
             repeat(diff) { hidden.removeAt(hidden.lastIndex) }
         }
     }
@@ -56,7 +59,9 @@ class Domain<D : Any>(set: Set<D>) : ArrayList<D>(set) {
      * @param value Object currently available in the domain.
      */
     fun hideValue(value: D) {
-        remove(value)
+        if (!remove(value)) {
+            throw IllegalArgumentException("Value not found: $value")
+        }
         hidden.add(value)
     }
 }
