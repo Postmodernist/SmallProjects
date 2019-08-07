@@ -8,8 +8,9 @@ fun main() {
         while (isActive) {
             print(". ")
             @Suppress("BlockingMethodInNonBlockingContext")
-            Thread.sleep(500)
+            runBlocking { delay(500) }
         }
+        println("job end")
     }
 
     runBlocking {
