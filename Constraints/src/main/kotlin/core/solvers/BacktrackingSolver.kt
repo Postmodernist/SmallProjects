@@ -77,13 +77,13 @@ class BacktrackingSolver<V : Any, D : Any>(
     ): Sequence<Map<V, D>> = sequence {
 
         val assignments: HashMap<V, D> = HashMap()
-        val queue: Queue<QueueElement<V, D>> = LinkedList()
-
-        lateinit var variable: V
-        lateinit var values: ArrayList<D>
-        var pushDomains: ArrayList<Domain<D>>? = null
+        val stack: Deque<Element<V, D>> = ArrayDeque()
 
         while (true) {
+            lateinit var variable: V
+            lateinit var values: ArrayList<D>
+            var pushDomains: ArrayList<Domain<D>>? = null
+
             var found = false
             // Mix the Degree and Minimum Remaining Values (MRV) heuristics.
             val prioritizedVariables = ArrayList(domains.keys).apply {
@@ -94,6 +94,7 @@ class BacktrackingSolver<V : Any, D : Any>(
                     // Found unassigned variable.
                     variable = v
                     values = ArrayList(domains[v]!!)
+                    values.reverse()
                     if (forwardcheck) {
                         pushDomains = ArrayList()
                         for (x in domains.keys) {
@@ -111,10 +112,10 @@ class BacktrackingSolver<V : Any, D : Any>(
                 // No unassigned variables. We've got a solution. Go back
                 // to last variable, if there's one.
                 yield(HashMap(assignments))
-                if (queue.isEmpty()) {
+                if (stack.isEmpty()) {
                     return@sequence
                 }
-                val element = queue.poll()
+                val element = stack.pop()
                 variable = element.variable
                 values = element.values
                 pushDomains = element.pushDomains
@@ -127,17 +128,17 @@ class BacktrackingSolver<V : Any, D : Any>(
                     // No. Go back to last variable, if there's one.
                     assignments.remove(variable)
                     found = false
-                    while (queue.isNotEmpty()) {
-                        val element = queue.poll()
+                    while (!found && stack.isNotEmpty()) {
+                        val element = stack.pop()
                         variable = element.variable
                         values = element.values
                         pushDomains = element.pushDomains
                         pushDomains?.forEach { it.popState() }
                         if (values.isNotEmpty()) {
                             found = true
-                            break
+                        } else {
+                            assignments.remove(variable)
                         }
-                        assignments.remove(variable)
                     }
                     if (!found) {
                         return@sequence
@@ -149,7 +150,7 @@ class BacktrackingSolver<V : Any, D : Any>(
                 pushDomains?.forEach { it.pushState() }
                 found = true
                 for ((constraint, variables) in vconstraints[variable]!!) {
-                    if (!constraint(variables, domains, assignments, forwardcheck)) {
+                    if (!constraint(variables, domains, assignments, !pushDomains.isNullOrEmpty())) {
                         // Value is not good.
                         found = false
                         break
@@ -161,13 +162,13 @@ class BacktrackingSolver<V : Any, D : Any>(
                 pushDomains?.forEach { it.popState() }
             }
             // Push state before looking for next variable.
-            queue.offer(QueueElement(variable, values, pushDomains))
+            stack.push(Element(variable, values, pushDomains))
         }
     }
 
     override fun toString(): String  = "BacktrackingSolver"
 
-    private data class QueueElement<V : Any, D : Any>(
+    private data class Element<V : Any, D : Any>(
         val variable: V,
         val values: ArrayList<D>,
         val pushDomains: ArrayList<Domain<D>>?
