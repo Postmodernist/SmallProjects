@@ -18,7 +18,7 @@ import kotlin.collections.HashMap
  *
  *     problem = Problem(BacktrackingSolver())
  *     problem.addVariables(listOf("a", "b"), listOf(1, 2, 3))
- *     problem.addConstraint({ args -> args[1]!! > args[0]!! }, listOf("a", "b"))
+ *     problem.addConstraint({ a, b -> b > a }, listOf("a", "b"))
  *
  *     solution = problem.getSolution()
  *     println(solution in result)

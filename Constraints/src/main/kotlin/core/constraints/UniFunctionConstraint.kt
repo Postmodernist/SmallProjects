@@ -10,19 +10,18 @@ import core.Domain
  * ```
  *     problem = Problem()
  *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
- *     fun func(args: List<Int>) = args[1] > args[2]
- *     problem.addConstraint(func, listOf("a", "b"))
+ *     problem.addConstraint({ a -> a == 2 }, "a")
  *     problem.getSolution()
  * ```
  * Output:
  * ```
- *     {a=1, b=2}
+ *     [{a=2, b=1}, {a=2, b=2}]
  * ```
  *
  * @param func Function wrapped and queried for constraint logic.
  */
-class FunctionConstraint<V : Any, D : Any>(
-    private val func: (List<D>) -> Boolean
+class UniFunctionConstraint<V : Any, D : Any>(
+    private val func: (D) -> Boolean
 ) : Constraint<V, D> {
 
     override fun invoke(
@@ -31,15 +30,15 @@ class FunctionConstraint<V : Any, D : Any>(
         assignments: HashMap<V, D>,
         forwardcheck: Boolean
     ): Boolean {
+        if (variables.size != 1) {
+            throw IllegalArgumentException("Wrong number of arguments")
+        }
         val args = variables.map { assignments[it] }
         val missing = args.count { it == null }
         return if (missing != 0) {
-            !forwardcheck || missing != 1 || forwardCheck(variables, domains, assignments)
+            !forwardcheck || forwardCheck(variables, domains, assignments)
         } else {
-            @Suppress("UNCHECKED_CAST")
-            func(args as List<D>)
+            func(args[0]!!)
         }
     }
-
-    override fun toString(): String = "FunctionConstraint@${func.hashCode()}"
 }

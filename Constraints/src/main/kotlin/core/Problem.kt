@@ -1,6 +1,9 @@
 package core
 
+import core.constraints.BiFunctionConstraint
 import core.constraints.FunctionConstraint
+import core.constraints.TriFunctionConstraint
+import core.constraints.UniFunctionConstraint
 import core.solvers.BacktrackingSolver
 import utils.ConstraintEnv
 import utils.copy
@@ -108,7 +111,7 @@ class Problem<V : Any, D : Any>(var solver: Solver<V, D> = BacktrackingSolver())
      *```
      *     problem = Problem()
      *     problem.addVariables(listOf("a", "b"), listOf(1, 2, 3))
-     *     problem.addConstraint({ args -> args[1]!! == args[0]!! + 1 }, listOf("a", "b"))
+     *     problem.addConstraint({ args -> args[1] == args[0] + 1 }, listOf("a", "b"))
      *     solutions = problem.getSolutions()
      * ```
      * Output:
@@ -121,8 +124,78 @@ class Problem<V : Any, D : Any>(var solver: Solver<V, D> = BacktrackingSolver())
      *        all variables). Depending on the constraint type
      *        the order may be important.
      */
-    fun addConstraint(constraint: (List<D?>) -> Boolean, variables: List<V> = emptyList()) {
+    fun addConstraint(constraint: (List<D>) -> Boolean, variables: List<V> = emptyList()) {
         constraints.add(Pair(FunctionConstraint(constraint), ArrayList(variables)))
+    }
+
+    /**
+     * Add a constraint to the problem.
+     *
+     * Example:
+     * ```
+     *     problem = Problem()
+     *     problem.addVariables(listOf("a", "b", "c"), listOf(1, 2, 3))
+     *     problem.addConstraint({ a, b, c -> a + b == c }, listOf("a", "b", "c"))
+     *     problem.getSolution()
+     * ```
+     * Output:
+     * ```
+     *     {a=1, b=1, c=2}
+     * ```
+     *
+     * @param constraint Constraint to be included in the problem.
+     * @param variables Variables affected by the constraint (default to
+     *        all variables). Depending on the constraint type
+     *        the order may be important.
+     */
+    fun addConstraint(constraint: (D, D, D) -> Boolean, variables: List<V> = emptyList()) {
+        constraints.add(Pair(TriFunctionConstraint(constraint), ArrayList(variables)))
+    }
+
+    /**
+     * Add a constraint to the problem.
+     *
+     * Example:
+     *```
+     *     problem = Problem()
+     *     problem.addVariables(listOf("a", "b"), listOf(1, 2, 3))
+     *     problem.addConstraint({ a, b -> b == a + 1 }, listOf("a", "b"))
+     *     solutions = problem.getSolutions()
+     * ```
+     * Output:
+     * ```
+     *     [{a=1, b=2}, {a=2, b=3}]
+     * ```
+     *
+     * @param constraint Constraint to be included in the problem.
+     * @param variables Variables affected by the constraint (default to
+     *        all variables). Depending on the constraint type
+     *        the order may be important.
+     */
+    fun addConstraint(constraint: (D, D) -> Boolean, variables: List<V> = emptyList()) {
+        constraints.add(Pair(BiFunctionConstraint(constraint), ArrayList(variables)))
+    }
+
+    /**
+     * Add a constraint to the problem.
+     *
+     * Example:
+     * ```
+     *     problem = Problem()
+     *     problem.addVariables(listOf("a", "b"), listOf(1, 2))
+     *     problem.addConstraint({ a -> a == 2 }, "a")
+     *     problem.getSolution()
+     * ```
+     * Output:
+     * ```
+     *     [{a=2, b=1}, {a=2, b=2}]
+     * ```
+     *
+     * @param constraint Constraint to be included in the problem.
+     * @param variable Variable affected by the constraint.
+     */
+    fun addConstraint(constraint: (D) -> Boolean, variable: V) {
+        constraints.add(Pair(UniFunctionConstraint(constraint), arrayListOf(variable)))
     }
 
     /**
