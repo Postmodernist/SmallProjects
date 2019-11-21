@@ -6,7 +6,7 @@ import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import core.Table.Request.*
 
 class Table {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val requestChannel = Channel<Request>(BUFFERED)
     private val forks = List<ArrayList<CompletableDeferred<Unit>>>(FORKS_COUNT) { ArrayList() }
 
