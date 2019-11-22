@@ -31,9 +31,10 @@ class SemanticStringComparator : Comparator<String> {
 
         if (areNumbers(firstToken, secondToken)) {
             cmp = compareNumerically(firstToken, secondToken)
-        }
-
-        if (cmp == 0) {
+            if (cmp == 0) {
+                cmp = -compareLexicographically(firstToken, secondToken)
+            }
+        } else {
             cmp = compareLexicographically(firstToken, secondToken)
         }
 

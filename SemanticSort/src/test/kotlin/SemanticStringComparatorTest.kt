@@ -133,6 +133,14 @@ class SemanticStringComparatorTest {
         )
     }
 
+    @Test
+    fun test17() {
+        assertLess(
+            "Monitor-8.02",
+            "Monitor-8.002"
+        )
+    }
+
     private fun assertLess(first: String?, second: String?) {
         assertTrue(comparator.compare(first, second) == -1)
     }
