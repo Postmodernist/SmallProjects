@@ -1,4 +1,4 @@
-package producer_consumer;
+package producer_consumer.drop;
 
 public class Main {
     public static void main(String[] args) {

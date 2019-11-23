@@ -1,4 +1,4 @@
-package producer_consumer;
+package producer_consumer.drop;
 
 import java.util.Random;
 

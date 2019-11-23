@@ -1,4 +1,4 @@
-package producer_consumer;
+package producer_consumer.drop;
 
 class Drop {
     // Message sent from producer
