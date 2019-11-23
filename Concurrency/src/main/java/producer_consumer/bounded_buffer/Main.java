@@ -1,24 +1,43 @@
 package producer_consumer.bounded_buffer;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class Main {
 
     public static void main(String[] args) {
         BoundedBuffer buffer = new BoundedBufferImpl();
-        int processorsCount = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(processorsCount);
+        ExecutorService executor = Executors.newFixedThreadPool(11);
 
-        for (int i = 0; i < processorsCount - 1; i++) {
-            Producer producer = new Producer(i, buffer);
-            executor.submit(producer);
+        List<Future<Integer>> producerCounts = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            producerCounts.add(executor.submit(new Producer(i, buffer)));
         }
-        Runnable consumer = new Thread(new Consumer(buffer));
-        executor.submit(consumer);
+        List<Future<Integer>> consumerCounts = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            consumerCounts.add(executor.submit(new Consumer(i, buffer)));
+        }
 
         scheduleShutdown(executor);
+
+        int messagesSent = 0;
+        for (Future<Integer> count : producerCounts) {
+            try {
+                messagesSent += count.get();
+            } catch (InterruptedException | ExecutionException ignored) {
+            }
+        }
+        System.out.println("total messages sent: " + messagesSent);
+
+        int messagesReceived = 0;
+        for (Future<Integer> count : consumerCounts) {
+            try {
+                messagesReceived += count.get();
+            } catch (InterruptedException | ExecutionException ignored) {
+            }
+        }
+        System.out.println("total messages received: " + messagesReceived);
     }
 
     private static void scheduleShutdown(ExecutorService executor) {
@@ -31,7 +50,7 @@ public class Main {
         }).start();
     }
 
-    static class Producer implements Runnable {
+    static class Producer implements Callable<Integer> {
         private final int id;
         private final BoundedBuffer buffer;
         private int messageCount;
@@ -42,7 +61,7 @@ public class Main {
         }
 
         @Override
-        public void run() {
+        public Integer call() {
             while (true) {
                 int payload = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
                 String message = id + "_" + payload;
@@ -53,32 +72,34 @@ public class Main {
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException ignored) {
                     System.out.format("[%d] sent %d messages%n", id, messageCount);
-                    return;
+                    return messageCount;
                 }
             }
         }
     }
 
-    static class Consumer implements Runnable {
+    static class Consumer implements Callable<Integer> {
+        private final int id;
         private final BoundedBuffer buffer;
         private int messageCount;
 
-        Consumer(BoundedBuffer buffer) {
+        Consumer(int id, BoundedBuffer buffer) {
+            this.id = id;
             this.buffer = buffer;
         }
 
         @Override
-        public void run() {
+        public Integer call() {
             int sleepInterval = ThreadLocalRandom.current().nextInt(100);
             while (true) {
                 try {
                     String message = (String) buffer.take();
                     messageCount++;
-                    System.out.format("message %d: %s%n", messageCount, message);
+                    System.out.format("[%d] message %d: %s%n", id, messageCount, message);
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException ignored) {
-                    System.out.format("received %d messages%n", messageCount);
-                    return;
+                    System.out.format("[%d] received %d messages%n", id, messageCount);
+                    return messageCount;
                 }
             }
         }
