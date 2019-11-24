@@ -6,6 +6,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Safelock {
 
+    public static void main(String[] args) {
+        final Friend alphonse = new Friend("Alphonse");
+        final Friend gaston = new Friend("Gaston");
+        new Thread(new BowLoop(alphonse, gaston)).start();
+        new Thread(new BowLoop(gaston, alphonse)).start();
+    }
+
     static class Friend {
         private final String name;
         private final Lock lock = new ReentrantLock();
@@ -79,13 +86,5 @@ public class Safelock {
                 bowee.bow(bower);
             }
         }
-    }
-
-
-    public static void main(String[] args) {
-        final Friend alphonse = new Friend("Alphonse");
-        final Friend gaston = new Friend("Gaston");
-        new Thread(new BowLoop(alphonse, gaston)).start();
-        new Thread(new BowLoop(gaston, alphonse)).start();
     }
 }

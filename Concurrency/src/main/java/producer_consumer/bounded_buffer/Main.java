@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.concurrent.*;
 
 public class Main {
-    private static final int THREAD_COUNT = 11;
     private static final int PRODUCER_COUNT = 5;
-    private static final int CONSUMER_COUNT = 6;
+    private static final int CONSUMER_COUNT = 5;
 
     private final BoundedBuffer buffer = new BoundedBufferImpl();
-    private final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+    private final ExecutorService executor =
+            Executors.newFixedThreadPool(PRODUCER_COUNT + CONSUMER_COUNT);
 
     public static void main(String[] args) {
         new Main().execute();
