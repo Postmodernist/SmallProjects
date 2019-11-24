@@ -1,4 +1,4 @@
-package reader_writer.reader_preference;
+package reader_writer.writer_preference;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,19 +43,21 @@ public class Main {
     private void execute() throws IOException {
         final File file = getFile();
         final Semaphore resource = new Semaphore(1);
+        final Semaphore readTry = new Semaphore(1);
         final ReentrantLock readMutex = new ReentrantLock();
+        final ReentrantLock writeMutex = new ReentrantLock();
 
         final ExecutorService executor =
                 Executors.newFixedThreadPool(WRITER_COUNT + READER_COUNT);
 
         for (int i = 0; i < WRITER_COUNT; i++) {
             final int id = i;
-            executor.execute(() -> writeLoop(new Writer(file, resource), id));
+            executor.execute(() -> writeLoop(new Writer(file, resource, readTry, writeMutex), id));
         }
 
         for (int i = 0; i < READER_COUNT; i++) {
             final int id = i;
-            executor.execute(() -> readLoop(new Reader(file, resource, readMutex), id));
+            executor.execute(() -> readLoop(new Reader(file, resource, readTry, readMutex), id));
         }
 
         try {

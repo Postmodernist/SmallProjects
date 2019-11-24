@@ -18,12 +18,12 @@ class Writer {
     }
 
     void write(String data) throws IOException, InterruptedException {
-        resource.acquire();
         // BEGIN CRITICAL SECTION
+        resource.acquire();
         doWrite(data);
         writeCount.incrementAndGet();
-        // END CRITICAL SECTION
         resource.release();
+        // END CRITICAL SECTION
     }
 
     private void doWrite(String data) throws IOException {
