@@ -1,4 +1,4 @@
-package reader_writer.writer_preference;
+package reader_writer.no_starvation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -8,46 +8,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 class Writer {
-    private static int writerCount;
-
     static AtomicInteger writeCount = new AtomicInteger();
 
     private final File file;
     private final Semaphore resource;
-    private final Semaphore readTry;
-    private final ReentrantLock writeMutex;
+    private final ReentrantLock serviceQueue;
 
-    Writer(File file, Semaphore resource, Semaphore readTry, ReentrantLock writeMutex) {
+    Writer(File file, Semaphore resource, ReentrantLock serviceQueue) {
         this.file = file;
         this.resource = resource;
-        this.readTry = readTry;
-        this.writeMutex = writeMutex;
+        this.serviceQueue = serviceQueue;
     }
 
     void write(String data) throws IOException, InterruptedException {
         // begin ENTRY section
-        writeMutex.lockInterruptibly();
-        if (writerCount == 0) {
-            readTry.acquire();
-        }
-        writerCount++;
-        writeMutex.unlock();
+        serviceQueue.lockInterruptibly();
+        resource.acquire();
+        serviceQueue.unlock();
         // end ENTRY section
 
         // begin CRITICAL section
-        resource.acquire();
         doWrite(data);
         writeCount.incrementAndGet();
-        resource.release();
         // end CRITICAL section
 
         // begin EXIT section
-        writeMutex.lockInterruptibly();
-        writerCount--;
-        if (writerCount == 0) {
-            readTry.release();
-        }
-        writeMutex.unlock();
+        resource.release();
         // end EXIT section
     }
 

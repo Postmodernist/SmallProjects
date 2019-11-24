@@ -29,10 +29,10 @@ class Reader {
         // begin ENTRY section
         readTry.acquire();
         readMutex.lockInterruptibly();
-        readerCount++;
-        if (readerCount == 1) {
+        if (readerCount == 0) {
             resource.acquire();
         }
+        readerCount++;
         readMutex.unlock();
         readTry.release();
         // end ENTRY section

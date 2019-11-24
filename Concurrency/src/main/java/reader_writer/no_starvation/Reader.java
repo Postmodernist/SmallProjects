@@ -1,4 +1,4 @@
-package reader_writer.reader_preference;
+package reader_writer.no_starvation;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,23 +14,27 @@ class Reader {
     static AtomicInteger readCount = new AtomicInteger();
 
     private final File file;
-    private final ReentrantLock readMutex;
     private final Semaphore resource;
+    private final ReentrantLock serviceQueue;
+    private final ReentrantLock readMutex;
 
-    Reader(File file, Semaphore resource, ReentrantLock readMutex) {
+    Reader(File file, Semaphore resource, ReentrantLock serviceQueue, ReentrantLock readMutex) {
         this.file = file;
-        this.readMutex = readMutex;
         this.resource = resource;
+        this.serviceQueue = serviceQueue;
+        this.readMutex = readMutex;
     }
 
     String read() throws IOException, InterruptedException {
         // begin ENTRY section
+        serviceQueue.lockInterruptibly();
         readMutex.lockInterruptibly();
         if (readerCount == 0) {
             resource.acquire();
         }
         readerCount++;
         readMutex.unlock();
+        serviceQueue.unlock();
         // end ENTRY section
 
         // begin CRITICAL section
