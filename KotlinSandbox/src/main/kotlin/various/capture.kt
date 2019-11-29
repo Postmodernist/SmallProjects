@@ -1,6 +1,6 @@
 package various
 
-class Foo {
+private class Capture {
     var baz: IntArray = intArrayOf(42)
 
     fun bar(): () -> Unit {
@@ -16,7 +16,7 @@ class Foo {
 }
 
 fun main() {
-    val foo = Foo()
+    val foo = Capture()
     val qux = foo.bar()
     qux()
     println("foo baz[0] = ${foo.baz[0]}")
